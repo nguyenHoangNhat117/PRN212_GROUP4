@@ -24,6 +24,8 @@ namespace PRN212_GROUP4.Models
 
         public int? DepartmentID { get; set; }
 
+        public string? DepartmentName { get; set; }
+
         public DateTime? EnrollmentDate { get; set; }
 
         public string StudentStatus { get; set; } = string.Empty;

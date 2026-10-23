@@ -15,7 +15,7 @@
 
     <Window.Resources>
 
-        <!-- Banner cam đậm -->
+        <!-- BANNER -->
         <LinearGradientBrush x:Key="HeroGradient"
                              StartPoint="0,0"
                              EndPoint="1,1">
@@ -24,7 +24,7 @@
             <GradientStop Color="#A83A11" Offset="1"/>
         </LinearGradientBrush>
 
-        <!-- Nút menu bên trái -->
+        <!-- SIDEBAR BUTTON -->
         <Style x:Key="NavButton" TargetType="Button">
             <Setter Property="Height" Value="46"/>
             <Setter Property="Margin" Value="12,3"/>
@@ -77,7 +77,7 @@
             </Setter>
         </Style>
 
-        <!-- Nút thao tác chính -->
+        <!-- ACTION BUTTON -->
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Background" Value="#C2410C"/>
             <Setter Property="Foreground" Value="White"/>
@@ -127,7 +127,7 @@
             </Setter>
         </Style>
 
-        <!-- Thẻ thống kê -->
+        <!-- STAT CARD -->
         <Style x:Key="StatCard" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="CornerRadius" Value="14"/>
@@ -137,7 +137,7 @@
             <Setter Property="Margin" Value="0,0,14,0"/>
         </Style>
 
-        <!-- Bảng dữ liệu -->
+        <!-- DATA GRID -->
         <Style TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="CanUserAddRows" Value="False"/>
@@ -203,7 +203,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Trạng thái sinh viên -->
+        <!-- STUDENT STATUS -->
         <Style x:Key="StatusBadge" TargetType="Border">
             <Setter Property="Background" Value="#F0EDE8"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -237,7 +237,7 @@
         <Border Grid.Column="0" Background="#24211F">
             <DockPanel LastChildFill="True">
 
-                <!-- Thông tin nhóm -->
+                <!-- GROUP INFO -->
                 <Border DockPanel.Dock="Bottom"
                         BorderBrush="#45403B"
                         BorderThickness="0,1,0,0"
@@ -274,7 +274,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
 
-                        <!-- Logo -->
+                        <!-- LOGO -->
                         <StackPanel Margin="25,34,15,38">
                             <TextBlock Text="StudentHub."
                                        FontSize="26"
@@ -294,32 +294,43 @@
                                    FontWeight="Bold"
                                    Margin="28,0,0,12"/>
 
-                        <Button Style="{StaticResource NavButton}"
+                        <!-- DASHBOARD -->
+                        <Button x:Name="DashboardButton"
+                                Click="DashboardButton_Click"
+                                Style="{StaticResource NavButton}"
                                 Background="#C2410C"
                                 Foreground="White">
+
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
                                            Text="&#xE80F;"
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Dashboard"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource NavButton}">
+                        <!-- STUDENTS -->
+                        <Button x:Name="StudentsButton"
+                                Click="StudentsButton_Click"
+                                Style="{StaticResource NavButton}">
+
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
                                            Text="&#xE716;"
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Students"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
+                        <!-- COURSES -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -327,11 +338,13 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Courses"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
+                        <!-- CLASSES -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -339,11 +352,13 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Classes"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
+                        <!-- ENROLLMENTS -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -351,6 +366,7 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Enrollments"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
@@ -362,6 +378,7 @@
                                    FontWeight="Bold"
                                    Margin="28,28,0,12"/>
 
+                        <!-- GRADES -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -369,11 +386,13 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Grades"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
+                        <!-- ACADEMIC PROGRESS -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -381,20 +400,26 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Academic Progress"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource NavButton}">
+                        <!-- REPORTS -->
+                        <Button x:Name="ReportsButton"
+                            Click="ReportsButton_Click"
+                            Style="{StaticResource NavButton}">
+
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
-                                           Text="&#xE9F9;"
-                                           Width="28"
-                                           FontSize="16"
-                                           VerticalAlignment="Center"/>
+                                    Text="&#xE9F9;"
+                                    Width="28"
+                                    FontSize="16"
+                                    VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Reports"
-                                           VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
@@ -404,6 +429,7 @@
                                    FontWeight="Bold"
                                    Margin="28,28,0,12"/>
 
+                        <!-- USER ACCOUNTS -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -411,11 +437,13 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="User Accounts"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
 
+                        <!-- SETTINGS -->
                         <Button Style="{StaticResource NavButton}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
@@ -423,6 +451,7 @@
                                            Width="28"
                                            FontSize="16"
                                            VerticalAlignment="Center"/>
+
                                 <TextBlock Text="Settings"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
@@ -453,12 +482,15 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Dashboard"
+
+                        <TextBlock x:Name="PageTitle"
+                                   Text="Dashboard"
                                    FontWeight="Bold"
                                    FontSize="20"
                                    Foreground="#292524"/>
 
-                        <TextBlock Text="Student Management / Overview"
+                        <TextBlock x:Name="PageSubtitle"
+                                   Text="Student Management / Overview"
                                    FontSize="11"
                                    Foreground="#756E66"
                                    Margin="0,5,0,0"/>
@@ -497,13 +529,14 @@
                 </Grid>
             </Border>
 
-            <!-- CONTENT -->
-            <ScrollViewer Grid.Row="1"
+            <!-- DASHBOARD CONTENT -->
+            <ScrollViewer x:Name="DashboardContent"
+                          Grid.Row="1"
                           VerticalScrollBarVisibility="Auto">
 
                 <StackPanel Margin="32,28,32,30">
 
-                    <!-- BANNER -->
+                    <!-- WELCOME BANNER -->
                     <Border Height="174"
                             CornerRadius="18"
                             Background="{StaticResource HeroGradient}">
@@ -515,6 +548,7 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel VerticalAlignment="Center">
+
                                 <TextBlock Text="STUDENT MANAGEMENT SYSTEM"
                                            FontSize="11"
                                            FontWeight="SemiBold"
@@ -571,6 +605,7 @@
                     <!-- STATISTICS -->
                     <UniformGrid Columns="4" Margin="0,0,-14,0">
 
+                        <!-- STUDENTS -->
                         <Border Style="{StaticResource StatCard}">
                             <StackPanel>
                                 <Border Background="#FFF0E5"
@@ -604,6 +639,7 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- COURSES -->
                         <Border Style="{StaticResource StatCard}">
                             <StackPanel>
                                 <Border Background="#F0EDE8"
@@ -637,6 +673,7 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- CLASSES -->
                         <Border Style="{StaticResource StatCard}">
                             <StackPanel>
                                 <Border Background="#F0EDE8"
@@ -670,6 +707,7 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- ENROLLMENTS -->
                         <Border Style="{StaticResource StatCard}">
                             <StackPanel>
                                 <Border Background="#FFF0E5"
@@ -805,6 +843,7 @@
                                       ItemsSource="{Binding Students}">
 
                                 <DataGrid.Columns>
+
                                     <DataGridTextColumn
                                         Header="STUDENT ID"
                                         Binding="{Binding StudentCode}"
@@ -841,6 +880,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
 
                                     </DataGridTemplateColumn>
+
                                 </DataGrid.Columns>
                             </DataGrid>
 
@@ -873,6 +913,14 @@
 
                 </StackPanel>
             </ScrollViewer>
+
+            <!-- PAGE CONTENT -->
+            <Frame x:Name="MainFrame"
+                   Grid.Row="1"
+                   Visibility="Collapsed"
+                   NavigationUIVisibility="Hidden"
+                   Background="#F6F5F2"/>
+
         </Grid>
     </Grid>
 </Window>
