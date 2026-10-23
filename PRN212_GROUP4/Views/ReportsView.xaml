@@ -1,0 +1,296 @@
+﻿<Page x:Class="PRN212_GROUP4.Views.ReportsView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Reports"
+      Background="#F6F5F2"
+      FontFamily="Segoe UI"
+      UseLayoutRounding="True">
+
+    <Page.Resources>
+
+        <!-- CARD -->
+        <Style x:Key="ReportCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E8E3DD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="22"/>
+        </Style>
+
+        <!-- BUTTON -->
+        <Style x:Key="ReportButton" TargetType="Button">
+            <Setter Property="Background" Value="#C2410C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#C2410C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="22,11"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.85"/>
+                            </Trigger>
+
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="#292524"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TABLE -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F5F3EF"/>
+            <Setter Property="Foreground" Value="#655E57"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style TargetType="DataGridCell">
+            <Setter Property="Foreground" Value="#3E3934"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                Padding="12,0">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="BorderBrush" Value="#F0ECE6"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFF6ED"/>
+                </Trigger>
+
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#FFE8D6"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+    </Page.Resources>
+
+    <Grid Margin="32,28,32,30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- PAGE HEADER -->
+        <StackPanel Margin="0,0,0,22">
+            <TextBlock Text="Academic reports"
+                       FontSize="26"
+                       FontWeight="Bold"
+                       Foreground="#292524"/>
+
+            <TextBlock
+                Text="Generate a student list by department and status."
+                FontSize="13"
+                Foreground="#756E66"
+                Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <!-- FILTERS -->
+        <Border Grid.Row="1"
+                Style="{StaticResource ReportCard}"
+                Margin="0,0,0,22">
+
+            <Grid x:Name="FilterPanel">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Department"
+                               Foreground="#655E57"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+
+                    <ComboBox Height="40"
+                              FontSize="14"
+                              Padding="10,6"
+                              ItemsSource="{Binding Departments}"
+                              DisplayMemberPath="DepartmentName"
+                              SelectedValuePath="DepartmentID"
+                              SelectedValue="{Binding SelectedDepartmentID,
+                                                      Mode=TwoWay}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Student status"
+                               Foreground="#655E57"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"/>
+
+                    <ComboBox Height="40"
+                              FontSize="14"
+                              Padding="10,6"
+                              ItemsSource="{Binding StatusOptions}"
+                              SelectedItem="{Binding SelectedStatus,
+                                                     Mode=TwoWay}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Bottom">
+
+                    <Button Content="Generate"
+                        Click="GenerateButton_Click"
+                        Style="{StaticResource ReportButton}"
+                        Margin="0,0,10,0"/>
+
+                    <Button Content="Export CSV"
+                        Click="ExportCsvButton_Click"
+                        Style="{StaticResource ReportButton}"/>
+
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- REPORT RESULTS -->
+        <Border Grid.Row="2"
+                Style="{StaticResource ReportCard}">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Margin="0,0,0,18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Student report"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#292524"
+                               VerticalAlignment="Center"/>
+
+                    <Border Grid.Column="1"
+                            Background="#FFF0E5"
+                            CornerRadius="8"
+                            Padding="12,7">
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding ReportStudents.Count}"
+                                       FontWeight="Bold"
+                                       Foreground="#A9380A"/>
+
+                            <TextBlock Text=" students"
+                                       Foreground="#A9380A"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding ReportStudents}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="None"
+                          RowHeaderWidth="0"
+                          RowHeight="50"
+                          ColumnHeaderHeight="44"
+                          BorderThickness="0"
+                          Background="White"
+                          RowBackground="White"
+                          AlternatingRowBackground="#FCFBF9"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+
+                    <DataGrid.Columns>
+
+                        <DataGridTextColumn
+                            Header="CODE"
+                            Binding="{Binding StudentCode}"
+                            Width="110"/>
+
+                        <DataGridTextColumn
+                            Header="FULL NAME"
+                            Binding="{Binding FullName}"
+                            Width="*"
+                            MinWidth="180"/>
+
+                        <DataGridTextColumn
+                            Header="DEPARTMENT"
+                            Binding="{Binding DepartmentName,
+                                              TargetNullValue=Unassigned}"
+                            Width="*"
+                            MinWidth="180"/>
+
+                        <DataGridTextColumn
+                            Header="EMAIL"
+                            Binding="{Binding Email}"
+                            Width="*"
+                            MinWidth="180"/>
+
+                        <DataGridTextColumn
+                            Header="STATUS"
+                            Binding="{Binding StudentStatus}"
+                            Width="130"/>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <TextBlock x:Name="ReportStatus"
+                   Grid.Row="3"
+                   Text="Loading report..."
+                   Foreground="#756E66"
+                   FontSize="12"
+                   Margin="0,16,0,0"/>
+    </Grid>
+</Page>
