@@ -125,7 +125,9 @@
                 Padding="22">
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="FormPanel" Margin="0,0,8,0">
+                <StackPanel x:Name="FormPanel"
+                    Margin="0,0,8,0"
+                    IsEnabled="{Binding IsFormEnabled}">
 
                     <TextBlock Text="Student code *"
                                Style="{StaticResource FieldLabel}"/>
@@ -214,27 +216,29 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock x:Name="OperationStatus"
-                       Text="Loading departments..."
-                       Foreground="#756E66"
-                       FontSize="12"
-                       VerticalAlignment="Center"/>
+                Text="{Binding StatusMessage}"
+                TextWrapping="Wrap"
+                Margin="0,0,12,0"
+                Foreground="#756E66"
+                FontSize="12"
+                VerticalAlignment="Center"/>
 
             <Button x:Name="CancelButton"
-                    Grid.Column="1"
-                    Content="Cancel"
-                    IsCancel="True"
-                    Style="{StaticResource FormButton}"
-                    Background="White"
-                    Foreground="#3E3934"
-                    BorderBrush="#DED7CE"
-                    Margin="0,0,10,0"/>
+                Grid.Column="1"
+                Content="Cancel"
+                IsCancel="True"
+                IsEnabled="{Binding CanClose}"
+                Style="{StaticResource FormButton}"
+                Background="White"
+                Foreground="#3E3934"
+                BorderBrush="#DED7CE"
+                Margin="0,0,10,0"/>
 
             <Button x:Name="SaveButton"
-                    Grid.Column="2"
-                    Content="Save student"
-                    IsEnabled="False"
-                    Click="SaveButton_Click"
-                    Style="{StaticResource FormButton}"/>
+                Grid.Column="2"
+                Content="Save student"
+                Command="{Binding SaveCommand}"
+                Style="{StaticResource FormButton}"/>
         </Grid>
     </Grid>
 </Window>

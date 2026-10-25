@@ -1,15 +1,17 @@
-﻿using PRN212_GROUP4.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Threading.Tasks;
+using PRN212_GROUP4.Helpers;
+using PRN212_GROUP4.Models;
 
 namespace PRN212_GROUP4.ViewModels
 {
-    public class EditStudentViewModel
+    public class EditStudentViewModel : ViewModelBase
     {
         private readonly DatabaseService databaseService;
+
+        private bool isBusy;
+        private bool isSaved;
+        private string statusMessage = string.Empty;
 
         public Student EditedStudent { get; }
 
@@ -21,12 +23,42 @@ namespace PRN212_GROUP4.ViewModels
             "SUSPENDED"
         };
 
+        public AsyncRelayCommand SaveCommand { get; }
+
+        public event EventHandler? SaveSucceeded;
+
+        public bool IsBusy
+        {
+            get => isBusy;
+
+            private set
+            {
+                if (SetProperty(ref isBusy, value))
+                {
+                    RefreshState();
+                }
+            }
+        }
+
+        public bool IsFormEnabled => !IsBusy && !isSaved;
+
+        public bool CanClose => !IsBusy;
+
+        public string StatusMessage
+        {
+            get => statusMessage;
+
+            private set => SetProperty(ref statusMessage, value);
+        }
+
         public EditStudentViewModel(Student student)
         {
+            ArgumentNullException.ThrowIfNull(student);
+
             databaseService = new DatabaseService();
 
-            // Sửa trên bản sao.
-            // Bấm Cancel sẽ không làm đổi dữ liệu đang hiển thị.
+            // Chỉnh sửa trên bản sao.
+            // Cancel không làm thay đổi sinh viên đang hiển thị.
             EditedStudent = new Student
             {
                 StudentID = student.StudentID,
@@ -46,11 +78,49 @@ namespace PRN212_GROUP4.ViewModels
                     ? Array.Empty<byte>()
                     : (byte[])student.RowVer.Clone()
             };
+
+            SaveCommand = new AsyncRelayCommand(
+                SaveAsync,
+                HandleSaveError,
+                () => !IsBusy && !isSaved);
         }
 
-        public async Task SaveAsync()
+        private void RefreshState()
         {
-            await databaseService.UpdateStudentAsync(EditedStudent);
+            OnPropertyChanged(nameof(IsFormEnabled));
+            OnPropertyChanged(nameof(CanClose));
+
+            SaveCommand.RaiseCanExecuteChanged();
+        }
+
+        private async Task SaveAsync()
+        {
+            IsBusy = true;
+            StatusMessage = "Saving...";
+
+            try
+            {
+                // Giữ nguyên kiểm tra RowVer trong DatabaseService.
+                await databaseService.UpdateStudentAsync(
+                    EditedStudent);
+
+                isSaved = true;
+
+                StatusMessage = "Changes saved.";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+
+            SaveSucceeded?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void HandleSaveError(Exception ex)
+        {
+            StatusMessage = isSaved
+                ? "Dữ liệu đã được lưu. Hãy đóng form.\n" + ex.Message
+                : "Không thể cập nhật sinh viên.\n" + ex.Message;
         }
     }
 }

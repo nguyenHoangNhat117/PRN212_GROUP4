@@ -175,7 +175,7 @@
                             Margin="12,0,0,0">
 
                             <Button Content="Records"
-                                Click="RecordsButton_Click"
+                                Command="{Binding ViewRecordsCommand}"
                                 Style="{DynamicResource ActionButton}"
                                 Background="#F0EDE8"
                                 Foreground="#3E3934"
@@ -183,7 +183,7 @@
                                 Margin="0,0,10,0"/>
 
                             <Button Content="Edit"
-                                Click="EditStudentButton_Click"
+                                Command="{Binding EditStudentCommand}"
                                 Style="{DynamicResource ActionButton}"
                                 Background="#F0EDE8"
                                 Foreground="#3E3934"
@@ -191,7 +191,7 @@
                                 Margin="0,0,10,0"/>
 
                             <Button Content="+ Add Student"
-                                Click="AddStudentButton_Click"
+                                Command="{Binding AddStudentCommand}"
                                 Style="{DynamicResource ActionButton}"
                                 Background="#C2410C"
                                 Foreground="White"

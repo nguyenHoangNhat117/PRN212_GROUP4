@@ -1,22 +1,28 @@
-﻿using PRN212_GROUP4.Models;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
+using PRN212_GROUP4.Helpers;
+using PRN212_GROUP4.Models;
+using PRN212_GROUP4.Services;
 
 namespace PRN212_GROUP4.ViewModels
 {
-    public class StudentViewModel : INotifyPropertyChanged
+    public class StudentViewModel : ViewModelBase
     {
         private readonly DatabaseService databaseService;
+        private readonly IStudentDialogService dialogService;
 
         private Student? selectedStudent;
+        private bool isBusy;
 
-        public ObservableCollection<Student> Students { get; }
+        public ObservableCollection<Student> Students { get; } = new();
+
+        public AsyncRelayCommand AddStudentCommand { get; }
+
+        public AsyncRelayCommand EditStudentCommand { get; }
+
+        public RelayCommand ViewRecordsCommand { get; }
 
         public Student? SelectedStudent
         {
@@ -24,47 +30,208 @@ namespace PRN212_GROUP4.ViewModels
 
             set
             {
-                if (object.ReferenceEquals(selectedStudent, value))
+                if (SetProperty(ref selectedStudent, value))
                 {
-                    return;
+                    RefreshCommands();
                 }
+            }
+        }
 
-                selectedStudent = value;
+        public bool IsBusy
+        {
+            get => isBusy;
 
-                OnPropertyChanged();
+            private set
+            {
+                if (SetProperty(ref isBusy, value))
+                {
+                    RefreshCommands();
+                }
             }
         }
 
         public StudentViewModel()
+            : this(
+                new DatabaseService(),
+                new StudentDialogService())
         {
-            databaseService = new DatabaseService();
+        }
 
-            Students = new ObservableCollection<Student>();
+        public StudentViewModel(
+            DatabaseService databaseService,
+            IStudentDialogService dialogService)
+        {
+            this.databaseService = databaseService
+                ?? throw new ArgumentNullException(
+                    nameof(databaseService));
+
+            this.dialogService = dialogService
+                ?? throw new ArgumentNullException(
+                    nameof(dialogService));
+
+            AddStudentCommand = new AsyncRelayCommand(
+                AddStudentAsync,
+                HandleCommandError,
+                () => !IsBusy);
+
+            EditStudentCommand = new AsyncRelayCommand(
+                EditStudentAsync,
+                HandleCommandError,
+                () => !IsBusy && SelectedStudent != null);
+
+            ViewRecordsCommand = new RelayCommand(
+                ViewRecords,
+                () => !IsBusy && SelectedStudent != null);
+        }
+
+        private void RefreshCommands()
+        {
+            AddStudentCommand.RaiseCanExecuteChanged();
+            EditStudentCommand.RaiseCanExecuteChanged();
+            ViewRecordsCommand.RaiseCanExecuteChanged();
+        }
+
+        private void HandleCommandError(Exception ex)
+        {
+            dialogService.ShowWarning(
+                "Không thể thực hiện thao tác.\n\n" + ex.Message);
         }
 
         public async Task LoadStudentsAsync()
         {
-            // Chỉ thay danh sách sau khi đọc database thành công.
+            if (IsBusy)
+            {
+                return;
+            }
+
+            IsBusy = true;
+
+            try
+            {
+                await ReloadStudentsCoreAsync(
+                    SelectedStudent?.StudentID);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task ReloadStudentsCoreAsync(
+            int? selectedStudentID)
+        {
+            // Chỉ thay danh sách khi đọc database thành công.
             var students = await databaseService.GetStudentsAsync();
 
             SelectedStudent = null;
 
             Students.Clear();
 
-            foreach (Student student in students)
+            foreach (var student in students)
             {
                 Students.Add(student);
             }
+
+            SelectedStudent = Students.FirstOrDefault(
+                student => student.StudentID == selectedStudentID);
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void OnPropertyChanged(
-            [CallerMemberName] string? propertyName = null)
+        private async Task AddStudentAsync()
         {
-            PropertyChanged?.Invoke(
-                this,
-                new PropertyChangedEventArgs(propertyName));
+            IsBusy = true;
+
+            try
+            {
+                int? studentID = dialogService.ShowAddStudent();
+
+                if (!studentID.HasValue)
+                {
+                    return;
+                }
+
+                await ReloadAfterSaveAsync(
+                    studentID.Value,
+                    "Thêm sinh viên thành công!");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task EditStudentAsync()
+        {
+            var student = SelectedStudent;
+
+            if (student == null)
+            {
+                return;
+            }
+
+            IsBusy = true;
+
+            try
+            {
+                if (!dialogService.ShowEditStudent(student))
+                {
+                    return;
+                }
+
+                await ReloadAfterSaveAsync(
+                    student.StudentID,
+                    "Cập nhật hồ sơ thành công!");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task ReloadAfterSaveAsync(
+            int studentID,
+            string successMessage)
+        {
+            try
+            {
+                await ReloadStudentsCoreAsync(studentID);
+            }
+            catch (Exception ex)
+            {
+                dialogService.ShowWarning(
+                    "Dữ liệu đã được lưu, nhưng không thể tải lại "
+                    + "danh sách.\n"
+                    + "Không cần thực hiện lưu lại.\n\n"
+                    + ex.Message);
+
+                return;
+            }
+
+            dialogService.ShowInformation(successMessage);
+        }
+
+        private void ViewRecords()
+        {
+            var student = SelectedStudent;
+
+            if (student == null)
+            {
+                return;
+            }
+
+            IsBusy = true;
+
+            try
+            {
+                dialogService.ShowStudentRecords(student);
+            }
+            catch (Exception ex)
+            {
+                HandleCommandError(ex);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }
