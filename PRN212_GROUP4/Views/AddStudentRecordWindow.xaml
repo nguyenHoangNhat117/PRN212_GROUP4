@@ -89,7 +89,9 @@
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
-        <StackPanel Margin="0,0,0,20">
+        <StackPanel Grid.Row="0"
+                    Margin="0,0,0,20">
+
             <TextBlock Text="Add academic record"
                        FontSize="25"
                        FontWeight="Bold"
@@ -120,7 +122,8 @@
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="FormPanel"
-                            Margin="0,0,8,0">
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsFormEnabled}">
 
                     <TextBlock Text="Record type *"
                                Style="{StaticResource FieldLabel}"
@@ -171,7 +174,9 @@
         </Border>
 
         <!-- FOOTER -->
-        <Grid Grid.Row="2" Margin="0,20,0,0">
+        <Grid Grid.Row="2"
+              Margin="0,20,0,0">
+
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -179,6 +184,10 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock x:Name="OperationStatus"
+                       Grid.Column="0"
+                       Text="{Binding StatusMessage}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,12,0"
                        Foreground="#756E66"
                        FontSize="12"
                        VerticalAlignment="Center"/>
@@ -187,6 +196,7 @@
                     Grid.Column="1"
                     Content="Cancel"
                     IsCancel="True"
+                    IsEnabled="{Binding CanClose}"
                     Style="{StaticResource FormButton}"
                     Background="White"
                     Foreground="#3E3934"
@@ -196,7 +206,7 @@
             <Button x:Name="SaveButton"
                     Grid.Column="2"
                     Content="Save record"
-                    Click="SaveButton_Click"
+                    Command="{Binding SaveCommand}"
                     Style="{StaticResource FormButton}"/>
         </Grid>
     </Grid>

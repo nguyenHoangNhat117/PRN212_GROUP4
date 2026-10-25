@@ -1,20 +1,8 @@
-﻿using PRN212_GROUP4.Models;
-using PRN212_GROUP4.ViewModels;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using PRN212_GROUP4.Models;
+using PRN212_GROUP4.ViewModels;
 
 namespace PRN212_GROUP4.Views
 {
@@ -22,9 +10,8 @@ namespace PRN212_GROUP4.Views
     {
         private readonly AddStudentRecordViewModel viewModel;
 
-        private bool isSaving;
-
-        public int? CreatedRecordID { get; private set; }
+        public int? CreatedRecordID =>
+            viewModel.CreatedRecordID;
 
         public AddStudentRecordWindow(
             Student student,
@@ -37,62 +24,36 @@ namespace PRN212_GROUP4.Views
                 createdByUserID);
 
             DataContext = viewModel;
+
+            viewModel.SaveSucceeded += ViewModel_SaveSucceeded;
+
+            Closed += AddStudentRecordWindow_Closed;
         }
 
-        private async void SaveButton_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void ViewModel_SaveSucceeded(
+            object? sender,
+            EventArgs e)
         {
-            if (isSaving)
-            {
-                return;
-            }
-
-            isSaving = true;
-
-            FormPanel.IsEnabled = false;
-            SaveButton.IsEnabled = false;
-            CancelButton.IsEnabled = false;
-
-            OperationStatus.Text = "Saving...";
-
-            try
-            {
-                CreatedRecordID = await viewModel.SaveAsync();
-
-                isSaving = false;
-
-                DialogResult = true;
-            }
-            catch (Exception ex)
-            {
-                OperationStatus.Text = "Record was not saved.";
-
-                MessageBox.Show(
-                    this,
-                    ex.Message,
-                    "Không thể thêm hồ sơ",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-            finally
-            {
-                isSaving = false;
-
-                FormPanel.IsEnabled = true;
-                SaveButton.IsEnabled = true;
-                CancelButton.IsEnabled = true;
-            }
+            DialogResult = true;
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            if (isSaving)
+            if (viewModel.IsBusy)
             {
                 e.Cancel = true;
             }
 
             base.OnClosing(e);
+        }
+
+        private void AddStudentRecordWindow_Closed(
+            object? sender,
+            EventArgs e)
+        {
+            viewModel.SaveSucceeded -= ViewModel_SaveSucceeded;
+
+            Closed -= AddStudentRecordWindow_Closed;
         }
     }
 }

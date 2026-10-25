@@ -8,7 +8,6 @@
 
     <Page.Resources>
 
-        <!-- CARD -->
         <Style x:Key="ReportCard" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E8E3DD"/>
@@ -17,7 +16,6 @@
             <Setter Property="Padding" Value="22"/>
         </Style>
 
-        <!-- BUTTON -->
         <Style x:Key="ReportButton" TargetType="Button">
             <Setter Property="Background" Value="#C2410C"/>
             <Setter Property="Foreground" Value="White"/>
@@ -60,7 +58,6 @@
             </Setter>
         </Style>
 
-        <!-- TABLE -->
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F5F3EF"/>
             <Setter Property="Foreground" Value="#655E57"/>
@@ -114,8 +111,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- PAGE HEADER -->
-        <StackPanel Margin="0,0,0,22">
+        <!-- HEADER -->
+        <StackPanel Grid.Row="0"
+                    Margin="0,0,0,22">
+
             <TextBlock Text="Academic reports"
                        FontSize="26"
                        FontWeight="Bold"
@@ -133,7 +132,9 @@
                 Style="{StaticResource ReportCard}"
                 Margin="0,0,0,22">
 
-            <Grid x:Name="FilterPanel">
+            <Grid x:Name="FilterPanel"
+                  IsEnabled="{Binding CanInteract}">
+
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="20"/>
@@ -175,18 +176,17 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="4"
-                    Orientation="Horizontal"
-                    VerticalAlignment="Bottom">
+                            Orientation="Horizontal"
+                            VerticalAlignment="Bottom">
 
                     <Button Content="Generate"
-                        Click="GenerateButton_Click"
-                        Style="{StaticResource ReportButton}"
-                        Margin="0,0,10,0"/>
+                            Command="{Binding GenerateCommand}"
+                            Style="{StaticResource ReportButton}"
+                            Margin="0,0,10,0"/>
 
                     <Button Content="Export CSV"
-                        Click="ExportCsvButton_Click"
-                        Style="{StaticResource ReportButton}"/>
-
+                            Command="{Binding ExportCsvCommand}"
+                            Style="{StaticResource ReportButton}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -251,7 +251,6 @@
                           VerticalScrollBarVisibility="Auto">
 
                     <DataGrid.Columns>
-
                         <DataGridTextColumn
                             Header="CODE"
                             Binding="{Binding StudentCode}"
@@ -280,15 +279,16 @@
                             Header="STATUS"
                             Binding="{Binding StudentStatus}"
                             Width="130"/>
-
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </Border>
 
+        <!-- STATUS -->
         <TextBlock x:Name="ReportStatus"
                    Grid.Row="3"
-                   Text="Loading report..."
+                   Text="{Binding StatusMessage}"
+                   TextWrapping="Wrap"
                    Foreground="#756E66"
                    FontSize="12"
                    Margin="0,16,0,0"/>

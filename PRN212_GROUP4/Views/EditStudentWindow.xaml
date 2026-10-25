@@ -102,7 +102,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Margin="0,0,0,22">
+        <!-- HEADER -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,22">
             <TextBlock Text="Edit student"
                        FontSize="26"
                        FontWeight="Bold"
@@ -114,6 +115,7 @@
                        Margin="0,8,0,0"/>
         </StackPanel>
 
+        <!-- FORM -->
         <Border Grid.Row="1"
                 Background="White"
                 BorderBrush="#E8E3DD"
@@ -122,7 +124,9 @@
                 Padding="22">
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="FormPanel" Margin="0,0,8,0">
+                <StackPanel x:Name="FormPanel"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsFormEnabled}">
 
                     <TextBlock Text="Student code"
                                Style="{StaticResource FieldLabel}"
@@ -165,13 +169,14 @@
                                             UpdateSourceTrigger=PropertyChanged}"/>
 
                     <TextBlock Text="Current department"
-                        Style="{StaticResource FieldLabel}"/>
+                               Style="{StaticResource FieldLabel}"/>
 
                     <TextBox IsReadOnly="True"
-                        Background="#F0EDE8"
-                        Text="{Binding EditedStudent.DepartmentName,
-                        Mode=OneWay,
-                        TargetNullValue=Chưa có khoa}"/>
+                             Background="#F0EDE8"
+                             Text="{Binding EditedStudent.DepartmentName,
+                                            Mode=OneWay,
+                                            TargetNullValue='Chưa có khoa'}"/>
+
                     <TextBlock Text="Enrollment date"
                                Style="{StaticResource FieldLabel}"/>
 
@@ -182,9 +187,10 @@
                     <TextBlock Text="Student status"
                                Style="{StaticResource FieldLabel}"/>
 
-                    <ComboBox ItemsSource="{Binding StudentStatuses}"
-                              SelectedItem="{Binding EditedStudent.StudentStatus,
-                                                     Mode=TwoWay}"/>
+                    <ComboBox
+                        ItemsSource="{Binding StudentStatuses}"
+                        SelectedItem="{Binding EditedStudent.StudentStatus,
+                                               Mode=TwoWay}"/>
 
                     <TextBlock Text="* Required field"
                                Foreground="#756E66"
@@ -195,6 +201,7 @@
             </ScrollViewer>
         </Border>
 
+        <!-- ACTIONS -->
         <Grid Grid.Row="2" Margin="0,20,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -203,6 +210,10 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock x:Name="OperationStatus"
+                       Grid.Column="0"
+                       Text="{Binding StatusMessage}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,12,0"
                        Foreground="#756E66"
                        FontSize="12"
                        VerticalAlignment="Center"/>
@@ -211,6 +222,7 @@
                     Grid.Column="1"
                     Content="Cancel"
                     IsCancel="True"
+                    IsEnabled="{Binding CanClose}"
                     Style="{StaticResource FormButton}"
                     Background="White"
                     Foreground="#3E3934"
@@ -220,7 +232,7 @@
             <Button x:Name="SaveButton"
                     Grid.Column="2"
                     Content="Save changes"
-                    Click="SaveButton_Click"
+                    Command="{Binding SaveCommand}"
                     Style="{StaticResource FormButton}"/>
         </Grid>
     </Grid>

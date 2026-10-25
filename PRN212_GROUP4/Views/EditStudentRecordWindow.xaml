@@ -13,7 +13,6 @@
 
     <Window.Resources>
 
-        <!-- FIELD LABEL -->
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#655E57"/>
             <Setter Property="FontSize" Value="12"/>
@@ -21,7 +20,6 @@
             <Setter Property="Margin" Value="0,18,0,7"/>
         </Style>
 
-        <!-- TEXT INPUT -->
         <Style TargetType="TextBox">
             <Setter Property="MinHeight" Value="40"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -39,7 +37,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- BUTTON -->
         <Style x:Key="FormButton" TargetType="Button">
             <Setter Property="Background" Value="#C2410C"/>
             <Setter Property="Foreground" Value="White"/>
@@ -92,7 +89,9 @@
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
-        <StackPanel Margin="0,0,0,20">
+        <StackPanel Grid.Row="0"
+                    Margin="0,0,0,20">
+
             <TextBlock Text="Edit academic record"
                        FontSize="25"
                        FontWeight="Bold"
@@ -123,7 +122,8 @@
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="FormPanel"
-                            Margin="0,0,8,0">
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsFormEnabled}">
 
                     <TextBlock Text="Record type *"
                                Style="{StaticResource FieldLabel}"
@@ -174,7 +174,9 @@
         </Border>
 
         <!-- FOOTER -->
-        <Grid Grid.Row="2" Margin="0,20,0,0">
+        <Grid Grid.Row="2"
+              Margin="0,20,0,0">
+
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -182,6 +184,10 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock x:Name="OperationStatus"
+                       Grid.Column="0"
+                       Text="{Binding StatusMessage}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,12,0"
                        Foreground="#756E66"
                        FontSize="12"
                        VerticalAlignment="Center"/>
@@ -190,6 +196,7 @@
                     Grid.Column="1"
                     Content="Cancel"
                     IsCancel="True"
+                    IsEnabled="{Binding CanClose}"
                     Style="{StaticResource FormButton}"
                     Background="White"
                     Foreground="#3E3934"
@@ -199,7 +206,7 @@
             <Button x:Name="SaveButton"
                     Grid.Column="2"
                     Content="Save changes"
-                    Click="SaveButton_Click"
+                    Command="{Binding SaveCommand}"
                     Style="{StaticResource FormButton}"/>
         </Grid>
     </Grid>

@@ -13,7 +13,6 @@
 
     <Window.Resources>
 
-        <!-- CARD -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E8E3DD"/>
@@ -22,7 +21,6 @@
             <Setter Property="Padding" Value="20"/>
         </Style>
 
-        <!-- BUTTON -->
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Background" Value="#C2410C"/>
             <Setter Property="Foreground" Value="White"/>
@@ -65,7 +63,6 @@
             </Setter>
         </Style>
 
-        <!-- DETAIL TEXT -->
         <Style x:Key="DetailLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#756E66"/>
             <Setter Property="FontSize" Value="12"/>
@@ -79,7 +76,6 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
 
-        <!-- TABLE -->
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F5F3EF"/>
             <Setter Property="Foreground" Value="#655E57"/>
@@ -134,7 +130,7 @@
         </Grid.RowDefinitions>
 
         <!-- HEADER -->
-        <StackPanel Margin="0,0,0,20">
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="Student records"
                        FontSize="26"
                        FontWeight="Bold"
@@ -147,7 +143,8 @@
                            FontWeight="SemiBold"
                            Foreground="#A9380A"/>
 
-                <TextBlock Text=" — " Foreground="#756E66"/>
+                <TextBlock Text=" — "
+                           Foreground="#756E66"/>
 
                 <TextBlock Text="{Binding Student.FullName}"
                            Foreground="#655E57"/>
@@ -156,8 +153,9 @@
 
         <!-- TOOLBAR -->
         <Grid x:Name="ToolbarPanel"
-      Grid.Row="1"
-      Margin="0,0,0,18">
+              Grid.Row="1"
+              Margin="0,0,0,18"
+              IsEnabled="{Binding CanInteract}">
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -165,44 +163,45 @@
             </Grid.ColumnDefinitions>
 
             <CheckBox Content="Include archived records"
-              IsChecked="{Binding IncludeArchived, Mode=TwoWay}"
-              Click="IncludeArchived_Click"
-              Foreground="#3E3934"
-              FontSize="13"
-              VerticalAlignment="Center"/>
+                      IsChecked="{Binding IncludeArchived,
+                                          Mode=TwoWay,
+                                          UpdateSourceTrigger=PropertyChanged}"
+                      Command="{Binding RefreshCommand}"
+                      Foreground="#3E3934"
+                      FontSize="13"
+                      VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1"
-                Orientation="Horizontal"
-                Margin="12,0,0,0">
+                        Orientation="Horizontal"
+                        Margin="12,0,0,0">
 
                 <Button Content="Refresh"
-                Click="RefreshButton_Click"
-                Style="{StaticResource ActionButton}"
-                Background="White"
-                Foreground="#3E3934"
-                BorderBrush="#DED7CE"
-                Margin="0,0,10,0"/>
+                        Command="{Binding RefreshCommand}"
+                        Style="{StaticResource ActionButton}"
+                        Background="White"
+                        Foreground="#3E3934"
+                        BorderBrush="#DED7CE"
+                        Margin="0,0,10,0"/>
 
                 <Button Content="Edit Record"
-                Click="EditRecordButton_Click"
-                Style="{StaticResource ActionButton}"
-                Background="#F0EDE8"
-                Foreground="#3E3934"
-                BorderBrush="#DED7CE"
-                Margin="0,0,10,0"/>
+                        Command="{Binding EditRecordCommand}"
+                        Style="{StaticResource ActionButton}"
+                        Background="#F0EDE8"
+                        Foreground="#3E3934"
+                        BorderBrush="#DED7CE"
+                        Margin="0,0,10,0"/>
 
                 <Button Content="Archive"
-                Click="ArchiveRecordButton_Click"
-                Style="{StaticResource ActionButton}"
-                Background="#FFF0E5"
-                Foreground="#9A3412"
-                BorderBrush="#FED7AA"
-                Margin="0,0,10,0"/>
+                        Command="{Binding ArchiveRecordCommand}"
+                        Style="{StaticResource ActionButton}"
+                        Background="#FFF0E5"
+                        Foreground="#9A3412"
+                        BorderBrush="#FED7AA"
+                        Margin="0,0,10,0"/>
 
                 <Button Content="+ Add Record"
-                Click="AddRecordButton_Click"
-                Style="{StaticResource ActionButton}"/>
-
+                        Command="{Binding AddRecordCommand}"
+                        Style="{StaticResource ActionButton}"/>
             </StackPanel>
         </Grid>
 
@@ -232,7 +231,9 @@
 
                     <DataGrid Grid.Row="1"
                               ItemsSource="{Binding Records}"
-                              SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
+                              SelectedItem="{Binding SelectedRecord,
+                                                     Mode=TwoWay}"
+                              IsEnabled="{Binding CanInteract}"
                               AutoGenerateColumns="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
@@ -253,7 +254,6 @@
                               VerticalScrollBarVisibility="Auto">
 
                         <DataGrid.Columns>
-
                             <DataGridTextColumn
                                 Header="DATE"
                                 Binding="{Binding RecordDate,
@@ -275,7 +275,6 @@
                                 Header="STATUS"
                                 Binding="{Binding ArchiveStatus}"
                                 Width="110"/>
-
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -317,7 +316,6 @@
                                         <DataTrigger
                                             Binding="{Binding SelectedRecord}"
                                             Value="{x:Null}">
-
                                             <Setter Property="Visibility"
                                                     Value="Visible"/>
                                         </DataTrigger>
@@ -327,8 +325,9 @@
                         </TextBlock>
 
                         <!-- SELECTED RECORD -->
-                        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled">
 
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer">
@@ -339,7 +338,6 @@
                                         <DataTrigger
                                             Binding="{Binding SelectedRecord}"
                                             Value="{x:Null}">
-
                                             <Setter Property="Visibility"
                                                     Value="Collapsed"/>
                                         </DataTrigger>
@@ -348,7 +346,6 @@
                             </ScrollViewer.Style>
 
                             <StackPanel Margin="0,0,8,0">
-
                                 <Border Background="#FFF0E5"
                                         CornerRadius="10"
                                         Padding="14">
@@ -386,11 +383,10 @@
 
                                 <TextBlock
                                     Text="{Binding SelectedRecord.RecordContent,
-                                                   TargetNullValue=No content}"
+                                                   TargetNullValue='No content'}"
                                     Foreground="#3E3934"
                                     FontSize="14"
                                     TextWrapping="Wrap"/>
-
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
@@ -398,10 +394,11 @@
             </Border>
         </Grid>
 
-        <!-- LOAD STATUS -->
+        <!-- STATUS -->
         <TextBlock x:Name="LoadStatus"
                    Grid.Row="3"
-                   Text="Loading records..."
+                   Text="{Binding StatusMessage}"
+                   TextWrapping="Wrap"
                    Foreground="#756E66"
                    FontSize="12"
                    Margin="0,16,0,0"/>
