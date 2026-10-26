@@ -1,10 +1,11 @@
 ﻿<Window x:Class="PRN212_GROUP4.Views.EditStudentWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
         Title="Edit Student"
-        Width="620"
-        Height="720"
-        MinWidth="540"
+        Width="760"
+        Height="820"
+        MinWidth="600"
         MinHeight="520"
         WindowStartupLocation="CenterOwner"
         Background="#F6F5F2"
@@ -17,58 +18,57 @@
             <Setter Property="Foreground" Value="#655E57"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,18,0,7"/>
+            <Setter Property="Margin" Value="0,16,0,7"/>
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Foreground" Value="#292524"/>
             <Setter Property="Background" Value="#FCFBF9"/>
             <Setter Property="BorderBrush" Value="#DED7CE"/>
-            <Setter Property="BorderThickness" Value="1"/>
-
-            <Style.Triggers>
-                <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                    <Setter Property="BorderBrush" Value="#C2410C"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style TargetType="DatePicker">
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="SelectedDateFormat" Value="Short"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Padding" Value="8"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="10,6"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
 
+        <Style TargetType="{x:Type primitives:DatePickerTextBox}">
+            <Setter Property="Visibility" Value="Collapsed"/>
+        </Style>
+
+        <Style x:Key="CalendarButton" TargetType="DatePicker">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="Language" Value="vi-VN"/>
+            <Setter Property="SelectedDateFormat" Value="Short"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="ToolTip" Value="Chọn ngày từ lịch"/>
+        </Style>
+
         <Style x:Key="FormButton" TargetType="Button">
-            <Setter Property="Padding" Value="22,12"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="MinWidth" Value="100"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="#C2410C"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#C2410C"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
 
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-
+                                BorderThickness="1"
+                                CornerRadius="9">
                             <ContentPresenter
                                 Margin="{TemplateBinding Padding}"
                                 HorizontalAlignment="Center"
@@ -79,11 +79,6 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Opacity" Value="0.85"/>
                             </Trigger>
-
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#292524"/>
-                            </Trigger>
-
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
                             </Trigger>
@@ -102,25 +97,22 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- HEADER -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,22">
+        <StackPanel Margin="0,0,0,22">
             <TextBlock Text="Edit student"
-                       FontSize="26"
+                       FontSize="28"
                        FontWeight="Bold"
                        Foreground="#292524"/>
 
             <TextBlock Text="Update the selected student profile."
-                       FontSize="13"
                        Foreground="#756E66"
                        Margin="0,8,0,0"/>
         </StackPanel>
 
-        <!-- FORM -->
         <Border Grid.Row="1"
                 Background="White"
                 BorderBrush="#E8E3DD"
                 BorderThickness="1"
-                CornerRadius="14"
+                CornerRadius="16"
                 Padding="22">
 
             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -145,12 +137,27 @@
                                             Mode=TwoWay,
                                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Date of birth"
+                    <TextBlock Text="Date of birth (dd/MM/yyyy)"
                                Style="{StaticResource FieldLabel}"/>
 
-                    <DatePicker
-                        SelectedDate="{Binding EditedStudent.DateOfBirth,
-                                               Mode=TwoWay}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox MaxLength="10"
+                                 ToolTip="Ví dụ: 20/10/2004"
+                                 Text="{Binding Dates.DateOfBirthText,
+                                                Mode=TwoWay,
+                                                UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <DatePicker Grid.Column="1"
+                                    Style="{StaticResource CalendarButton}"
+                                    SelectedDate="{Binding Dates.DateOfBirthCalendar,
+                                                           Mode=TwoWay,
+                                                           UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
 
                     <TextBlock Text="Email"
                                Style="{StaticResource FieldLabel}"/>
@@ -168,72 +175,84 @@
                                             Mode=TwoWay,
                                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Current department"
+                    <TextBlock Text="Department"
+                        Style="{StaticResource FieldLabel}"/>
+
+                    <ComboBox ItemsSource="{Binding Departments}"
+                        DisplayMemberPath="DepartmentName"
+                        SelectedValuePath="DepartmentID"
+                        SelectedValue="{Binding EditedStudent.DepartmentID,
+                                  Mode=TwoWay,
+                                  UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Text="Enrollment date (dd/MM/yyyy)"
                                Style="{StaticResource FieldLabel}"/>
 
-                    <TextBox IsReadOnly="True"
-                             Background="#F0EDE8"
-                             Text="{Binding EditedStudent.DepartmentName,
-                                            Mode=OneWay,
-                                            TargetNullValue='Chưa có khoa'}"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="Enrollment date"
-                               Style="{StaticResource FieldLabel}"/>
+                        <TextBox MaxLength="10"
+                                 ToolTip="Nhập ngày/tháng/năm"
+                                 Text="{Binding Dates.EnrollmentDateText,
+                                                Mode=TwoWay,
+                                                UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <DatePicker
-                        SelectedDate="{Binding EditedStudent.EnrollmentDate,
-                                               Mode=TwoWay}"/>
+                        <DatePicker Grid.Column="1"
+                                    Style="{StaticResource CalendarButton}"
+                                    SelectedDate="{Binding Dates.EnrollmentDateCalendar,
+                                                           Mode=TwoWay,
+                                                           UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
 
                     <TextBlock Text="Student status"
                                Style="{StaticResource FieldLabel}"/>
 
-                    <ComboBox
-                        ItemsSource="{Binding StudentStatuses}"
-                        SelectedItem="{Binding EditedStudent.StudentStatus,
-                                               Mode=TwoWay}"/>
+                    <ComboBox ItemsSource="{Binding StudentStatuses}"
+                              SelectedItem="{Binding EditedStudent.StudentStatus,
+                                                     Mode=TwoWay}"/>
 
                     <TextBlock Text="* Required field"
                                Foreground="#756E66"
                                FontSize="12"
-                               Margin="0,20,0,0"/>
-
+                               Margin="0,18,0,0"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
-        <!-- ACTIONS -->
-        <Grid Grid.Row="2" Margin="0,20,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
             <TextBlock x:Name="OperationStatus"
-                       Grid.Column="0"
                        Text="{Binding StatusMessage}"
+                       Foreground="#B42318"
                        TextWrapping="Wrap"
-                       Margin="0,0,12,0"
-                       Foreground="#756E66"
-                       FontSize="12"
-                       VerticalAlignment="Center"/>
+                       Margin="0,0,0,12"/>
 
-            <Button x:Name="CancelButton"
-                    Grid.Column="1"
-                    Content="Cancel"
-                    IsCancel="True"
-                    IsEnabled="{Binding CanClose}"
-                    Style="{StaticResource FormButton}"
-                    Background="White"
-                    Foreground="#3E3934"
-                    BorderBrush="#DED7CE"
-                    Margin="0,0,10,0"/>
+            <StackPanel Grid.Row="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
 
-            <Button x:Name="SaveButton"
-                    Grid.Column="2"
-                    Content="Save changes"
-                    Command="{Binding SaveCommand}"
-                    Style="{StaticResource FormButton}"/>
+                <Button x:Name="CancelButton"
+                        Content="Cancel"
+                        IsCancel="True"
+                        IsEnabled="{Binding CanClose}"
+                        Style="{StaticResource FormButton}"
+                        Background="White"
+                        Foreground="#3E3934"
+                        BorderBrush="#DED7CE"
+                        Margin="0,0,10,0"/>
+
+                <Button x:Name="SaveButton"
+                        Content="Save changes"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource FormButton}"/>
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>
