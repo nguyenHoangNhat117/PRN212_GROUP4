@@ -8,7 +8,6 @@
 
     <Page.Resources>
 
-        <!-- CARD -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E8E3DD"/>
@@ -17,14 +16,12 @@
             <Setter Property="Padding" Value="22"/>
         </Style>
 
-        <!-- DETAIL LABEL -->
         <Style x:Key="DetailLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#756E66"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="0,18,0,5"/>
         </Style>
 
-        <!-- DETAIL VALUE -->
         <Style x:Key="DetailValue" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#292524"/>
             <Setter Property="FontSize" Value="14"/>
@@ -32,7 +29,6 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
 
-        <!-- TABLE HEADER -->
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F5F3EF"/>
             <Setter Property="Foreground" Value="#655E57"/>
@@ -42,7 +38,6 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
-        <!-- TABLE CELL -->
         <Style TargetType="DataGridCell">
             <Setter Property="Foreground" Value="#3E3934"/>
             <Setter Property="FontSize" Value="13"/>
@@ -55,14 +50,14 @@
                     <ControlTemplate TargetType="DataGridCell">
                         <Border Background="{TemplateBinding Background}"
                                 Padding="14,0">
-                            <ContentPresenter VerticalAlignment="Center"/>
+                            <ContentPresenter
+                                VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- TABLE ROW -->
         <Style TargetType="DataGridRow">
             <Setter Property="BorderBrush" Value="#F0ECE6"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
@@ -78,7 +73,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- STATUS BADGE -->
         <Style x:Key="StatusBadge" TargetType="Border">
             <Setter Property="Background" Value="#F0EDE8"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -144,7 +138,6 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- LIST HEADER -->
                     <Grid Margin="0,0,0,20">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -153,53 +146,53 @@
 
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="Student directory"
-                                FontSize="18"
-                                FontWeight="SemiBold"
-                                Foreground="#292524"/>
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="#292524"/>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,5,0,0">
                                 <TextBlock Text="{Binding Students.Count}"
-                                    FontWeight="SemiBold"
-                                    Foreground="#756E66"
-                                    FontSize="12"/>
+                                           FontWeight="SemiBold"
+                                           Foreground="#756E66"
+                                           FontSize="12"/>
 
                                 <TextBlock Text=" students"
-                                    Foreground="#756E66"
-                                    FontSize="12"/>
+                                           Foreground="#756E66"
+                                           FontSize="12"/>
                             </StackPanel>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center"
-                            Margin="12,0,0,0">
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    Margin="12,0,0,0">
 
                             <Button Content="Records"
-                                Command="{Binding ViewRecordsCommand}"
-                                Style="{DynamicResource ActionButton}"
-                                Background="#F0EDE8"
-                                Foreground="#3E3934"
-                                Padding="14,10"
-                                Margin="0,0,10,0"/>
+                                    Command="{Binding ViewRecordsCommand}"
+                                    Style="{DynamicResource ActionButton}"
+                                    Background="#F0EDE8"
+                                    Foreground="#3E3934"
+                                    Padding="14,10"
+                                    Margin="0,0,10,0"/>
 
                             <Button Content="Edit"
-                                Command="{Binding EditStudentCommand}"
-                                Style="{DynamicResource ActionButton}"
-                                Background="#F0EDE8"
-                                Foreground="#3E3934"
-                                Padding="14,10"
-                                Margin="0,0,10,0"/>
+                                    Command="{Binding EditStudentCommand}"
+                                    Style="{DynamicResource ActionButton}"
+                                    Background="#F0EDE8"
+                                    Foreground="#3E3934"
+                                    Padding="14,10"
+                                    Margin="0,0,10,0"/>
 
                             <Button Content="+ Add Student"
-                                Command="{Binding AddStudentCommand}"
-                                Style="{DynamicResource ActionButton}"
-                                Background="#C2410C"
-                                Foreground="White"
-                                Padding="14,10"/>
+                                    Command="{Binding AddStudentCommand}"
+                                    Style="{DynamicResource ActionButton}"
+                                    Background="#C2410C"
+                                    Foreground="White"
+                                    Padding="14,10"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- SELECTED STUDENT BINDING -->
                     <DataGrid Grid.Row="1"
                               ItemsSource="{Binding Students}"
                               SelectedItem="{Binding SelectedStudent, Mode=TwoWay}"
@@ -224,21 +217,17 @@
 
                         <DataGrid.Columns>
 
-                            <DataGridTextColumn
-                                Header="CODE"
-                                Binding="{Binding StudentCode}"
-                                Width="110"/>
+                            <DataGridTextColumn Header="CODE"
+                                                Binding="{Binding StudentCode}"
+                                                Width="110"/>
 
-                            <DataGridTextColumn
-                                Header="FULL NAME"
-                                Binding="{Binding FullName}"
-                                Width="*"
-                                MinWidth="170"/>
+                            <DataGridTextColumn Header="FULL NAME"
+                                                Binding="{Binding FullName}"
+                                                Width="*"
+                                                MinWidth="170"/>
 
-                            <DataGridTemplateColumn
-                                Header="STATUS"
-                                Width="130">
-
+                            <DataGridTemplateColumn Header="STATUS"
+                                                    Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Style="{StaticResource StatusBadge}">
@@ -250,7 +239,6 @@
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
-
                             </DataGridTemplateColumn>
 
                         </DataGrid.Columns>
@@ -284,7 +272,7 @@
 
                     <Grid Grid.Row="1">
 
-                        <!-- EMPTY STATE -->
+                        <!-- NO STUDENT SELECTED -->
                         <StackPanel VerticalAlignment="Center">
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
@@ -295,7 +283,6 @@
                                         <DataTrigger
                                             Binding="{Binding SelectedStudent}"
                                             Value="{x:Null}">
-
                                             <Setter Property="Visibility"
                                                     Value="Visible"/>
                                         </DataTrigger>
@@ -332,7 +319,7 @@
                                 TextWrapping="Wrap"/>
                         </StackPanel>
 
-                        <!-- SELECTED PROFILE -->
+                        <!-- SELECTED STUDENT -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
 
@@ -345,7 +332,6 @@
                                         <DataTrigger
                                             Binding="{Binding SelectedStudent}"
                                             Value="{x:Null}">
-
                                             <Setter Property="Visibility"
                                                     Value="Collapsed"/>
                                         </DataTrigger>
@@ -401,14 +387,13 @@
                                                    TargetNullValue=—}"
                                     Style="{StaticResource DetailValue}"/>
 
+                                <!-- DEPARTMENT: CHỈ HIỂN THỊ MỘT LẦN -->
                                 <TextBlock Text="Department"
-                                    Style="{StaticResource DetailLabel}"/>
+                                           Style="{StaticResource DetailLabel}"/>
 
-                                <TextBlock Text="Department"
-                                    Style="{StaticResource DetailLabel}"/>
-
-                                <TextBlock Text="{Binding SelectedStudent.DepartmentName,
-                                    TargetNullValue=Chưa có khoa}"
+                                <TextBlock
+                                    Text="{Binding SelectedStudent.DepartmentName,
+                                                   TargetNullValue=Chưa có khoa}"
                                     Style="{StaticResource DetailValue}"/>
 
                                 <TextBlock Text="Enrollment date"

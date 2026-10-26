@@ -20,7 +20,17 @@ namespace PRN212_GROUP4.Views
 
             viewModel.SaveSucceeded += ViewModel_SaveSucceeded;
 
+            Loaded += EditStudentWindow_Loaded;
             Closed += EditStudentWindow_Closed;
+        }
+
+        private async void EditStudentWindow_Loaded(
+            object sender,
+            RoutedEventArgs e)
+        {
+            Loaded -= EditStudentWindow_Loaded;
+
+            await viewModel.LoadDepartmentsAsync();
         }
 
         private void ViewModel_SaveSucceeded(
@@ -46,6 +56,7 @@ namespace PRN212_GROUP4.Views
         {
             viewModel.SaveSucceeded -= ViewModel_SaveSucceeded;
 
+            Loaded -= EditStudentWindow_Loaded;
             Closed -= EditStudentWindow_Closed;
         }
     }

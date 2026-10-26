@@ -18,6 +18,8 @@ namespace PRN212_GROUP4.ViewModels
 
         public Student NewStudent { get; }
 
+        public StudentDateFields Dates { get; }
+
         public ObservableCollection<Department> Departments { get; }
             = new();
 
@@ -70,6 +72,8 @@ namespace PRN212_GROUP4.ViewModels
                 EnrollmentDate = DateTime.Today
             };
 
+            Dates = new StudentDateFields(NewStudent);
+
             SaveCommand = new AsyncRelayCommand(
                 SaveAsync,
                 HandleSaveError,
@@ -107,7 +111,6 @@ namespace PRN212_GROUP4.ViewModels
                 }
 
                 departmentsLoaded = true;
-
                 StatusMessage = string.Empty;
             }
             catch (Exception ex)
@@ -130,11 +133,13 @@ namespace PRN212_GROUP4.ViewModels
 
             try
             {
+                // Kiểm tra nội dung ngày đang nhập trước khi lưu.
+                Dates.ValidateAndApply(NewStudent);
+
                 CreatedStudentID =
                     await databaseService.AddStudentAsync(NewStudent);
 
                 isSaved = true;
-
                 StatusMessage = "Student saved.";
             }
             finally
@@ -142,7 +147,6 @@ namespace PRN212_GROUP4.ViewModels
                 IsBusy = false;
             }
 
-            // View nhận sự kiện để đóng cửa sổ.
             SaveSucceeded?.Invoke(this, EventArgs.Empty);
         }
 

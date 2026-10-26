@@ -8,3 +8,4 @@
 *.bak
 *.mdf
 *.ldf
+**/appsettings.json

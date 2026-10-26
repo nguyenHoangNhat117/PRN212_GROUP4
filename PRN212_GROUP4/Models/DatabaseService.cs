@@ -1,503 +1,281 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using System.Text;
+using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
-using System.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace PRN212_GROUP4.Models
 {
     public class DatabaseService
     {
-        private readonly string connectionString =
-    Environment.GetEnvironmentVariable("PRN212_DB_CONNECTION")
-    ?? throw new InvalidOperationException(
-        "Chưa cấu hình biến môi trường PRN212_DB_CONNECTION.");
+        // Không còn đọc biến môi trường tại đây.
+        // StudentDataContext đọc kết nối từ appsettings.json.
 
-        // Kiểm tra kết nối SQL Server
         public bool TestConnection()
         {
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
+            using var db = new StudentDataContext();
 
-            connection.Open();
-
-            return true;
+            return db.Database.CanConnect();
         }
 
-        // Lấy danh sách sinh viên từ database
+        public async Task<bool> TestConnectionAsync()
+        {
+            using var db = new StudentDataContext();
+
+            return await db.Database.CanConnectAsync();
+        }
+
+        // ==========================================
+        // SINH VIÊN
+        // ==========================================
+
         public async Task<List<Student>> GetStudentsAsync()
         {
-            List<Student> students = new List<Student>();
+            using var db = new StudentDataContext();
 
-            const string query = @"
-        SELECT
-            s.StudentID,
-            s.StudentCode,
-            s.UserID,
-            s.FullName,
-            s.DateOfBirth,
-            s.Email,
-            s.Phone,
-            s.DepartmentID,
-            s.EnrollmentDate,
-            s.StudentStatus,
-            s.CreatedAt,
-            s.RowVer,
-            d.DepartmentName
-        FROM dbo.Students AS s
-        LEFT JOIN dbo.Departments AS d
-            ON d.DepartmentID = s.DepartmentID
-        ORDER BY s.StudentCode;";
-
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            await connection.OpenAsync();
-
-            using SqlDataReader reader =
-                await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                Student student = new Student
+            // LEFT JOIN để vẫn lấy sinh viên chưa có khoa.
+            var query =
+                from student in db.Students.AsNoTracking()
+                join department in db.Departments.AsNoTracking()
+                    on student.DepartmentID
+                    equals (int?)department.DepartmentID
+                    into departmentGroup
+                from department in departmentGroup.DefaultIfEmpty()
+                orderby student.StudentCode
+                select new Student
                 {
-                    StudentID = reader.GetInt32(0),
+                    StudentID = student.StudentID,
+                    StudentCode = student.StudentCode,
+                    UserID = student.UserID,
+                    FullName = student.FullName,
+                    DateOfBirth = student.DateOfBirth,
+                    Email = student.Email,
+                    Phone = student.Phone,
+                    DepartmentID = student.DepartmentID,
 
-                    StudentCode = reader.GetString(1),
-
-                    UserID = reader.IsDBNull(2)
+                    DepartmentName = department == null
                         ? null
-                        : reader.GetInt32(2),
+                        : department.DepartmentName,
 
-                    FullName = reader.GetString(3),
-
-                    DateOfBirth = reader.IsDBNull(4)
-                        ? null
-                        : reader.GetDateTime(4),
-
-                    Email = reader.IsDBNull(5)
-                        ? null
-                        : reader.GetString(5),
-
-                    Phone = reader.IsDBNull(6)
-                        ? null
-                        : reader.GetString(6),
-
-                    DepartmentID = reader.IsDBNull(7)
-                        ? null
-                        : reader.GetInt32(7),
-
-                    EnrollmentDate = reader.IsDBNull(8)
-                        ? null
-                        : reader.GetDateTime(8),
-
-                    StudentStatus = reader.GetString(9),
-
-                    CreatedAt = reader.GetDateTime(10),
-
-                    RowVer = (byte[])reader.GetValue(11),
-
-                    DepartmentName = reader.IsDBNull(12)
-                        ? null
-                        : reader.GetString(12)
+                    EnrollmentDate = student.EnrollmentDate,
+                    StudentStatus = student.StudentStatus,
+                    CreatedAt = student.CreatedAt,
+                    RowVer = student.RowVer
                 };
 
-                students.Add(student);
-            }
-
-            return students;
+            return await query.ToListAsync();
         }
-        // Lấy các khoa đang hoạt động để chọn khi thêm sinh viên.
+
         public async Task<List<Department>> GetDepartmentsAsync()
         {
-            List<Department> departments = new List<Department>();
+            using var db = new StudentDataContext();
 
-            const string query = @"
-        SELECT
-            DepartmentID,
-            DepartmentCode,
-            DepartmentName,
-            IsActive
-        FROM dbo.Departments
-        WHERE IsActive = 1
-        ORDER BY DepartmentName;";
-
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            await connection.OpenAsync();
-
-            using SqlDataReader reader =
-                await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                Department department = new Department
-                {
-                    DepartmentID = reader.GetInt32(0),
-
-                    DepartmentCode = reader.GetString(1),
-
-                    DepartmentName = reader.GetString(2),
-
-                    IsActive = reader.GetBoolean(3)
-                };
-
-                departments.Add(department);
-            }
-
-            return departments;
+            return await db.Departments
+                .AsNoTracking()
+                .Where(department => department.IsActive)
+                .OrderBy(department => department.DepartmentName)
+                .ToListAsync();
         }
-        // Thêm hồ sơ sinh viên, chưa tạo tài khoản đăng nhập.
-        // Trả về StudentID vừa được tạo.
+
         public async Task<int> AddStudentAsync(Student student)
         {
-            if (student == null)
+            ArgumentNullException.ThrowIfNull(student);
+
+            ValidateStudent(student, isNew: true);
+
+            using var db = new StudentDataContext();
+
+            // Giữ việc kiểm tra khoa và thêm sinh viên
+            // trong cùng một transaction.
+            using var transaction =
+                await db.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable);
+
+            if (student.DepartmentID.HasValue)
             {
-                throw new ArgumentNullException(nameof(student));
-            }
+                int departmentID = student.DepartmentID.Value;
 
-            string studentCode = student.StudentCode.Trim();
-            string fullName = student.FullName.Trim();
+                bool departmentExists =
+                    await db.Departments.AnyAsync(
+                        department =>
+                            department.DepartmentID == departmentID
+                            && department.IsActive);
 
-            string? email = string.IsNullOrWhiteSpace(student.Email)
-                ? null
-                : student.Email.Trim();
-
-            string? phone = string.IsNullOrWhiteSpace(student.Phone)
-                ? null
-                : student.Phone.Trim();
-
-            string status = string.IsNullOrWhiteSpace(student.StudentStatus)
-                ? "ACTIVE"
-                : student.StudentStatus.Trim().ToUpperInvariant();
-
-            // Kiểm tra thông tin bắt buộc.
-            if (string.IsNullOrWhiteSpace(studentCode))
-            {
-                throw new ArgumentException("Vui lòng nhập mã sinh viên.");
-            }
-
-            if (studentCode.Length > 20)
-            {
-                throw new ArgumentException(
-                    "Mã sinh viên không được vượt quá 20 ký tự.");
-            }
-
-            if (string.IsNullOrWhiteSpace(fullName))
-            {
-                throw new ArgumentException("Vui lòng nhập họ tên sinh viên.");
-            }
-
-            if (fullName.Length > 120)
-            {
-                throw new ArgumentException(
-                    "Họ tên không được vượt quá 120 ký tự.");
-            }
-
-            if (email != null)
-            {
-                if (email.Length > 255
-                    || !System.Net.Mail.MailAddress.TryCreate(
-                        email,
-                        out var parsedEmail)
-                    || !string.Equals(
-                        parsedEmail.Address,
-                        email,
-                        StringComparison.OrdinalIgnoreCase))
+                if (!departmentExists)
                 {
-                    throw new ArgumentException("Email không hợp lệ.");
+                    throw new InvalidOperationException(
+                        "Khoa đã chọn không tồn tại "
+                        + "hoặc đã ngừng hoạt động.");
                 }
             }
 
-            if (phone != null && phone.Length > 30)
+            bool duplicateCode =
+                await db.Students.AnyAsync(
+                    existing =>
+                        existing.StudentCode == student.StudentCode);
+
+            if (duplicateCode)
             {
-                throw new ArgumentException(
-                    "Số điện thoại không được vượt quá 30 ký tự.");
+                throw new InvalidOperationException(
+                    "Mã sinh viên đã tồn tại. "
+                    + "Vui lòng nhập mã khác.");
             }
 
-            if (student.DateOfBirth.HasValue
-                && student.DateOfBirth.Value.Date > DateTime.Today)
+            // Tạo entity riêng, không thay đổi ID của object trên UI
+            // trước khi lưu thành công.
+            var entity = new Student
             {
-                throw new ArgumentException(
-                    "Ngày sinh không được lớn hơn ngày hiện tại.");
-            }
+                StudentCode = student.StudentCode,
 
-            if (status != "ACTIVE"
-                && status != "INACTIVE"
-                && status != "GRADUATED"
-                && status != "SUSPENDED")
-            {
-                throw new ArgumentException(
-                    "Trạng thái sinh viên không hợp lệ.");
-            }
+                // Giữ hành vi cũ: thêm hồ sơ chưa tạo tài khoản.
+                UserID = null,
 
-            const string query = @"
-        INSERT INTO dbo.Students
-        (
-            StudentCode,
-            UserID,
-            FullName,
-            DateOfBirth,
-            Email,
-            Phone,
-            DepartmentID,
-            EnrollmentDate,
-            StudentStatus
-        )
-        OUTPUT INSERTED.StudentID
-        SELECT
-            @StudentCode,
-            NULL,
-            @FullName,
-            @DateOfBirth,
-            @Email,
-            @Phone,
-            @DepartmentID,
-            @EnrollmentDate,
-            @StudentStatus
-        WHERE
-            @DepartmentID IS NULL
-            OR EXISTS
-            (
-                SELECT 1
-                FROM dbo.Departments
-                WHERE DepartmentID = @DepartmentID
-                  AND IsActive = 1
-            );";
+                FullName = student.FullName,
+                DateOfBirth = student.DateOfBirth,
+                Email = student.Email,
+                Phone = student.Phone,
+                DepartmentID = student.DepartmentID,
+                EnrollmentDate = student.EnrollmentDate,
+                StudentStatus = student.StudentStatus
+            };
 
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            command.Parameters.Add(
-                "@StudentCode",
-                SqlDbType.VarChar,
-                20).Value = studentCode;
-
-            command.Parameters.Add(
-                "@FullName",
-                SqlDbType.NVarChar,
-                120).Value = fullName;
-
-            command.Parameters.Add(
-                "@DateOfBirth",
-                SqlDbType.Date).Value =
-                (object?)student.DateOfBirth?.Date ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@Email",
-                SqlDbType.NVarChar,
-                255).Value =
-                (object?)email ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@Phone",
-                SqlDbType.VarChar,
-                30).Value =
-                (object?)phone ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@DepartmentID",
-                SqlDbType.Int).Value =
-                (object?)student.DepartmentID ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@EnrollmentDate",
-                SqlDbType.Date).Value =
-                (object?)student.EnrollmentDate?.Date ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@StudentStatus",
-                SqlDbType.VarChar,
-                20).Value = status;
-
-            await connection.OpenAsync();
+            db.Students.Add(entity);
 
             try
             {
-                object? result = await command.ExecuteScalarAsync();
+                await db.SaveChangesAsync();
 
-                if (result == null || result == DBNull.Value)
-                {
-                    throw new InvalidOperationException(
-                        "Khoa đã chọn không tồn tại hoặc đã ngừng hoạt động.");
-                }
+                await transaction.CommitAsync();
 
-                return Convert.ToInt32(result);
+                return entity.StudentID;
             }
-            catch (SqlException ex)
-                when (ex.Number == 2601 || ex.Number == 2627)
+            catch (DbUpdateException ex)
+                when (IsUniqueConstraintError(ex))
             {
                 throw new InvalidOperationException(
-                    "Mã sinh viên đã tồn tại. Vui lòng nhập mã khác.",
+                    "Dữ liệu bị trùng với hồ sơ đã tồn tại. "
+                    + "Hãy kiểm tra mã sinh viên và email.",
                     ex);
             }
         }
+
         public async Task UpdateStudentAsync(Student student)
         {
-            if (student == null)
-            {
-                throw new ArgumentNullException(nameof(student));
-            }
+            ArgumentNullException.ThrowIfNull(student);
 
             if (student.StudentID <= 0)
             {
-                throw new ArgumentException("Sinh viên không hợp lệ.");
+                throw new ArgumentException(
+                    "Sinh viên không hợp lệ.");
             }
 
-            if (student.RowVer == null || student.RowVer.Length != 8)
+            if (student.RowVer == null
+                || student.RowVer.Length != 8)
             {
                 throw new ArgumentException(
-                    "Thiếu phiên bản dữ liệu. Hãy tải lại danh sách sinh viên.");
+                    "Thiếu phiên bản dữ liệu. "
+                    + "Hãy tải lại danh sách sinh viên.");
             }
 
-            string fullName = student.FullName.Trim();
+            ValidateStudent(student, isNew: false);
 
-            string? email = string.IsNullOrWhiteSpace(student.Email)
-                ? null
-                : student.Email.Trim();
+            using var db = new StudentDataContext();
 
-            string? phone = string.IsNullOrWhiteSpace(student.Phone)
-                ? null
-                : student.Phone.Trim();
+            using var transaction =
+                await db.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable);
 
-            string status = student.StudentStatus.Trim().ToUpperInvariant();
+            // Lấy sinh viên hiện tại để EF theo dõi thay đổi.
+            var entity = await db.Students.SingleOrDefaultAsync(
+                existing => existing.StudentID == student.StudentID);
 
-            if (string.IsNullOrWhiteSpace(fullName))
+            if (entity == null)
             {
-                throw new ArgumentException("Vui lòng nhập họ tên.");
+                throw new InvalidOperationException(
+                    "Sinh viên không còn tồn tại. "
+                    + "Hãy tải lại danh sách.");
             }
 
-            if (fullName.Length > 120)
+            // So sánh với phiên bản khi người dùng mở form Edit.
+            if (!entity.RowVer.SequenceEqual(student.RowVer))
             {
-                throw new ArgumentException(
-                    "Họ tên không được vượt quá 120 ký tự.");
+                throw new InvalidOperationException(
+                    "Hồ sơ đã được người khác thay đổi.\n"
+                    + "Hãy đóng form, tải lại danh sách "
+                    + "và mở lại hồ sơ.");
             }
 
-            if (email != null)
+            // Chỉ kiểm tra khoa hoạt động khi chuyển sang khoa khác.
+            // Sinh viên thuộc khoa cũ đã ngừng hoạt động
+            // vẫn có thể sửa các thông tin khác.
+            if (student.DepartmentID != entity.DepartmentID
+                && student.DepartmentID.HasValue)
             {
-                if (email.Length > 255
-                    || !System.Net.Mail.MailAddress.TryCreate(
-                        email,
-                        out var parsedEmail)
-                    || !string.Equals(
-                        parsedEmail.Address,
-                        email,
-                        StringComparison.OrdinalIgnoreCase))
+                int departmentID = student.DepartmentID.Value;
+
+                bool validDepartment =
+                    await db.Departments.AnyAsync(
+                        department =>
+                            department.DepartmentID == departmentID
+                            && department.IsActive);
+
+                if (!validDepartment)
                 {
-                    throw new ArgumentException("Email không hợp lệ.");
+                    throw new InvalidOperationException(
+                        "Khoa đã chọn không tồn tại "
+                        + "hoặc đã ngừng hoạt động.");
                 }
             }
 
-            if (phone != null && phone.Length > 30)
+            entity.FullName = student.FullName;
+            entity.DateOfBirth = student.DateOfBirth;
+            entity.Email = student.Email;
+            entity.Phone = student.Phone;
+
+            // Cập nhật khoa được chọn.
+            entity.DepartmentID = student.DepartmentID;
+
+            entity.EnrollmentDate = student.EnrollmentDate;
+            entity.StudentStatus = student.StudentStatus;
+
+            db.Entry(entity)
+                .Property(existing => existing.RowVer)
+                .OriginalValue = student.RowVer.ToArray();
+
+            try
             {
-                throw new ArgumentException(
-                    "Số điện thoại không được vượt quá 30 ký tự.");
+                await db.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                student.RowVer = entity.RowVer.ToArray();
             }
-
-            if (student.DateOfBirth.HasValue
-                && student.DateOfBirth.Value.Date > DateTime.Today)
-            {
-                throw new ArgumentException(
-                    "Ngày sinh không được lớn hơn ngày hiện tại.");
-            }
-
-            if (status != "ACTIVE"
-                && status != "INACTIVE"
-                && status != "GRADUATED"
-                && status != "SUSPENDED")
-            {
-                throw new ArgumentException("Trạng thái không hợp lệ.");
-            }
-
-            const string query = @"
-        UPDATE dbo.Students
-        SET
-            FullName = @FullName,
-            DateOfBirth = @DateOfBirth,
-            Email = @Email,
-            Phone = @Phone,
-            EnrollmentDate = @EnrollmentDate,
-            StudentStatus = @StudentStatus
-        OUTPUT INSERTED.RowVer
-        WHERE StudentID = @StudentID
-          AND RowVer = @RowVer;";
-
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            command.Parameters.Add(
-                "@StudentID",
-                SqlDbType.Int).Value = student.StudentID;
-
-            command.Parameters.Add(
-                "@FullName",
-                SqlDbType.NVarChar,
-                120).Value = fullName;
-
-            command.Parameters.Add(
-                "@DateOfBirth",
-                SqlDbType.Date).Value =
-                (object?)student.DateOfBirth?.Date ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@Email",
-                SqlDbType.NVarChar,
-                255).Value =
-                (object?)email ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@Phone",
-                SqlDbType.VarChar,
-                30).Value =
-                (object?)phone ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@EnrollmentDate",
-                SqlDbType.Date).Value =
-                (object?)student.EnrollmentDate?.Date ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@StudentStatus",
-                SqlDbType.VarChar,
-                20).Value = status;
-
-            command.Parameters.Add(
-                "@RowVer",
-                SqlDbType.Binary,
-                8).Value = student.RowVer;
-
-            await connection.OpenAsync();
-
-            object? result = await command.ExecuteScalarAsync();
-
-            if (result is not byte[] newRowVersion)
+            catch (DbUpdateConcurrencyException ex)
             {
                 throw new InvalidOperationException(
                     "Không thể cập nhật vì hồ sơ đã được thay đổi "
                     + "hoặc xóa sau khi bạn tải dữ liệu.\n"
-                    + "Hãy đóng form, tải lại danh sách và mở lại hồ sơ.");
+                    + "Hãy đóng form, tải lại danh sách "
+                    + "và mở lại hồ sơ.",
+                    ex);
             }
-
-            student.RowVer = newRowVersion;
+            catch (DbUpdateException ex)
+                when (IsUniqueConstraintError(ex))
+            {
+                throw new InvalidOperationException(
+                    "Thông tin cập nhật bị trùng với hồ sơ khác. "
+                    + "Hãy kiểm tra lại dữ liệu.",
+                    ex);
+            }
         }
-        // Lấy hồ sơ học vụ của một sinh viên.
-        // Mặc định chỉ lấy hồ sơ chưa lưu trữ.
-        // includeArchived = true: lấy cả hồ sơ đã lưu trữ.
+
+        // ==========================================
+        // HỒ SƠ HỌC VỤ
+        // ==========================================
+
         public async Task<List<StudentRecord>> GetStudentRecordsAsync(
             int studentID,
             bool includeArchived = false)
@@ -508,88 +286,22 @@ namespace PRN212_GROUP4.Models
                     "Mã định danh sinh viên không hợp lệ.");
             }
 
-            List<StudentRecord> records = new List<StudentRecord>();
+            using var db = new StudentDataContext();
 
-            const string query = @"
-        SELECT
-            RecordID,
-            StudentID,
-            RecordType,
-            RecordTitle,
-            RecordContent,
-            RecordDate,
-            IsArchived,
-            CreatedByUserID,
-            CreatedAt
-        FROM dbo.StudentRecords
-        WHERE StudentID = @StudentID
-          AND
-          (
-              @IncludeArchived = 1
-              OR IsArchived = 0
-          )
-        ORDER BY RecordDate DESC, RecordID DESC;";
-
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            command.Parameters.Add(
-                "@StudentID",
-                SqlDbType.Int).Value = studentID;
-
-            command.Parameters.Add(
-                "@IncludeArchived",
-                SqlDbType.Bit).Value = includeArchived;
-
-            await connection.OpenAsync();
-
-            using SqlDataReader reader =
-                await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                StudentRecord record = new StudentRecord
-                {
-                    RecordID = reader.GetInt32(0),
-
-                    StudentID = reader.GetInt32(1),
-
-                    RecordType = reader.GetString(2),
-
-                    RecordTitle = reader.GetString(3),
-
-                    RecordContent = reader.IsDBNull(4)
-                        ? null
-                        : reader.GetString(4),
-
-                    RecordDate = reader.GetDateTime(5),
-
-                    IsArchived = reader.GetBoolean(6),
-
-                    CreatedByUserID = reader.IsDBNull(7)
-                        ? null
-                        : reader.GetInt32(7),
-
-                    CreatedAt = reader.GetDateTime(8)
-                };
-
-                records.Add(record);
-            }
-
-            return records;
+            return await db.StudentRecords
+                .AsNoTracking()
+                .Where(record =>
+                    record.StudentID == studentID
+                    && (includeArchived || !record.IsArchived))
+                .OrderByDescending(record => record.RecordDate)
+                .ThenByDescending(record => record.RecordID)
+                .ToListAsync();
         }
 
-        // Thêm bản ghi học vụ cho một sinh viên.
-        // Trả về RecordID vừa được tạo.
-        public async Task<int> AddStudentRecordAsync(StudentRecord record)
+        public async Task<int> AddStudentRecordAsync(
+            StudentRecord record)
         {
-            if (record == null)
-            {
-                throw new ArgumentNullException(nameof(record));
-            }
+            ArgumentNullException.ThrowIfNull(record);
 
             if (record.StudentID <= 0)
             {
@@ -597,44 +309,7 @@ namespace PRN212_GROUP4.Models
                     "Vui lòng chọn sinh viên hợp lệ.");
             }
 
-            string recordType = record.RecordType?.Trim() ?? string.Empty;
-
-            string recordTitle = record.RecordTitle?.Trim() ?? string.Empty;
-
-            string? recordContent =
-                string.IsNullOrWhiteSpace(record.RecordContent)
-                    ? null
-                    : record.RecordContent.Trim();
-
-            if (string.IsNullOrWhiteSpace(recordType))
-            {
-                throw new ArgumentException(
-                    "Vui lòng nhập loại hồ sơ.");
-            }
-
-            if (recordType.Length > 60)
-            {
-                throw new ArgumentException(
-                    "Loại hồ sơ không được vượt quá 60 ký tự.");
-            }
-
-            if (string.IsNullOrWhiteSpace(recordTitle))
-            {
-                throw new ArgumentException(
-                    "Vui lòng nhập tiêu đề hồ sơ.");
-            }
-
-            if (recordTitle.Length > 180)
-            {
-                throw new ArgumentException(
-                    "Tiêu đề không được vượt quá 180 ký tự.");
-            }
-
-            if (record.RecordDate == default)
-            {
-                throw new ArgumentException(
-                    "Vui lòng chọn ngày ghi nhận hồ sơ.");
-            }
+            ValidateStudentRecord(record);
 
             if (record.CreatedByUserID.HasValue
                 && record.CreatedByUserID.Value <= 0)
@@ -643,86 +318,50 @@ namespace PRN212_GROUP4.Models
                     "Tài khoản người tạo không hợp lệ.");
             }
 
-            const string query = @"
-        INSERT INTO dbo.StudentRecords
-        (
-            StudentID,
-            RecordType,
-            RecordTitle,
-            RecordContent,
-            RecordDate,
-            IsArchived,
-            CreatedByUserID
-        )
-        OUTPUT INSERTED.RecordID
-        SELECT
-            @StudentID,
-            @RecordType,
-            @RecordTitle,
-            @RecordContent,
-            @RecordDate,
-            0,
-            @CreatedByUserID
-        FROM dbo.Students
-        WHERE StudentID = @StudentID;";
+            using var db = new StudentDataContext();
 
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
+            using var transaction =
+                await db.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable);
 
-            using SqlCommand command =
-                new SqlCommand(query, connection);
+            bool studentExists =
+                await db.Students.AnyAsync(
+                    student =>
+                        student.StudentID == record.StudentID);
 
-            command.Parameters.Add(
-                "@StudentID",
-                SqlDbType.Int).Value = record.StudentID;
-
-            command.Parameters.Add(
-                "@RecordType",
-                SqlDbType.NVarChar,
-                60).Value = recordType;
-
-            command.Parameters.Add(
-                "@RecordTitle",
-                SqlDbType.NVarChar,
-                180).Value = recordTitle;
-
-            command.Parameters.Add(
-                "@RecordContent",
-                SqlDbType.NVarChar,
-                -1).Value =
-                (object?)recordContent ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@RecordDate",
-                SqlDbType.Date).Value = record.RecordDate.Date;
-
-            command.Parameters.Add(
-                "@CreatedByUserID",
-                SqlDbType.Int).Value =
-                (object?)record.CreatedByUserID ?? DBNull.Value;
-
-            await connection.OpenAsync();
-
-            object? result = await command.ExecuteScalarAsync();
-
-            if (result == null || result == DBNull.Value)
+            if (!studentExists)
             {
                 throw new InvalidOperationException(
                     "Sinh viên không còn tồn tại. "
                     + "Hãy tải lại danh sách sinh viên.");
             }
 
-            return Convert.ToInt32(result);
+            var entity = new StudentRecord
+            {
+                StudentID = record.StudentID,
+                RecordType = record.RecordType,
+                RecordTitle = record.RecordTitle,
+                RecordContent = record.RecordContent,
+                RecordDate = record.RecordDate.Date,
+                IsArchived = false,
+                CreatedByUserID = record.CreatedByUserID
+            };
+
+            db.StudentRecords.Add(entity);
+
+            await db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            return entity.RecordID;
         }
 
         public async Task UpdateStudentRecordAsync(
             StudentRecord edited,
             StudentRecord original)
         {
-            if (edited == null || original == null)
-            {
-                throw new ArgumentException("Hồ sơ không hợp lệ.");
-            }
+            ArgumentNullException.ThrowIfNull(edited);
+            ArgumentNullException.ThrowIfNull(original);
 
             if (original.RecordID <= 0
                 || original.StudentID <= 0
@@ -739,140 +378,69 @@ namespace PRN212_GROUP4.Models
                     "Không thể chỉnh sửa hồ sơ đã lưu trữ.");
             }
 
-            string recordType =
-                edited.RecordType?.Trim() ?? string.Empty;
+            ValidateStudentRecord(edited);
 
-            string recordTitle =
-                edited.RecordTitle?.Trim() ?? string.Empty;
+            using var db = new StudentDataContext();
 
-            string? recordContent =
-                string.IsNullOrWhiteSpace(edited.RecordContent)
-                    ? null
-                    : edited.RecordContent.Trim();
+            int recordID = original.RecordID;
+            int studentID = original.StudentID;
 
-            if (string.IsNullOrWhiteSpace(recordType))
-            {
-                throw new ArgumentException("Vui lòng nhập loại hồ sơ.");
-            }
+            string originalType = original.RecordType;
+            string originalTitle = original.RecordTitle;
+            string? originalContent = original.RecordContent;
+            DateTime originalDate = original.RecordDate.Date;
 
-            if (recordType.Length > 60)
-            {
-                throw new ArgumentException(
-                    "Loại hồ sơ không được vượt quá 60 ký tự.");
-            }
+            string newType = edited.RecordType;
+            string newTitle = edited.RecordTitle;
+            string? newContent = edited.RecordContent;
+            DateTime newDate = edited.RecordDate.Date;
 
-            if (string.IsNullOrWhiteSpace(recordTitle))
-            {
-                throw new ArgumentException("Vui lòng nhập tiêu đề hồ sơ.");
-            }
+            // So sánh dữ liệu gốc ngay trong điều kiện UPDATE.
+            // Nếu người khác sửa hoặc lưu trữ hồ sơ, sẽ không ghi đè.
+            int affectedRows = await db.StudentRecords
+                .Where(record =>
+                    record.RecordID == recordID
+                    && record.StudentID == studentID
+                    && !record.IsArchived
+                    && record.RecordType == originalType
+                    && record.RecordTitle == originalTitle
+                    && record.RecordDate == originalDate
+                    &&
+                    (
+                        record.RecordContent == originalContent
+                        ||
+                        (
+                            record.RecordContent == null
+                            && originalContent == null
+                        )
+                    ))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        record => record.RecordType,
+                        newType)
+                    .SetProperty(
+                        record => record.RecordTitle,
+                        newTitle)
+                    .SetProperty(
+                        record => record.RecordContent,
+                        newContent)
+                    .SetProperty(
+                        record => record.RecordDate,
+                        newDate));
 
-            if (recordTitle.Length > 180)
-            {
-                throw new ArgumentException(
-                    "Tiêu đề không được vượt quá 180 ký tự.");
-            }
-
-            if (edited.RecordDate == default)
-            {
-                throw new ArgumentException(
-                    "Vui lòng chọn ngày ghi nhận hồ sơ.");
-            }
-
-            const string query = @"
-        UPDATE dbo.StudentRecords
-        SET
-            RecordType = @RecordType,
-            RecordTitle = @RecordTitle,
-            RecordContent = @RecordContent,
-            RecordDate = @RecordDate
-        OUTPUT INSERTED.RecordID
-        WHERE RecordID = @RecordID
-          AND StudentID = @StudentID
-          AND IsArchived = 0
-          AND RecordType = @OriginalType
-          AND RecordTitle = @OriginalTitle
-          AND RecordDate = @OriginalDate
-          AND
-          (
-              RecordContent = @OriginalContent
-              OR
-              (
-                  RecordContent IS NULL
-                  AND @OriginalContent IS NULL
-              )
-          );";
-
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
-
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            command.Parameters.Add(
-                "@RecordID",
-                SqlDbType.Int).Value = original.RecordID;
-
-            command.Parameters.Add(
-                "@StudentID",
-                SqlDbType.Int).Value = original.StudentID;
-
-            command.Parameters.Add(
-                "@RecordType",
-                SqlDbType.NVarChar,
-                60).Value = recordType;
-
-            command.Parameters.Add(
-                "@RecordTitle",
-                SqlDbType.NVarChar,
-                180).Value = recordTitle;
-
-            command.Parameters.Add(
-                "@RecordContent",
-                SqlDbType.NVarChar,
-                -1).Value =
-                (object?)recordContent ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@RecordDate",
-                SqlDbType.Date).Value = edited.RecordDate.Date;
-
-            // Thông tin gốc dùng để phát hiện thay đổi trước khi lưu.
-            command.Parameters.Add(
-                "@OriginalType",
-                SqlDbType.NVarChar,
-                60).Value = original.RecordType;
-
-            command.Parameters.Add(
-                "@OriginalTitle",
-                SqlDbType.NVarChar,
-                180).Value = original.RecordTitle;
-
-            command.Parameters.Add(
-                "@OriginalContent",
-                SqlDbType.NVarChar,
-                -1).Value =
-                (object?)original.RecordContent ?? DBNull.Value;
-
-            command.Parameters.Add(
-                "@OriginalDate",
-                SqlDbType.Date).Value = original.RecordDate.Date;
-
-            await connection.OpenAsync();
-
-            object? result = await command.ExecuteScalarAsync();
-
-            if (result == null || result == DBNull.Value)
+            if (affectedRows == 0)
             {
                 throw new InvalidOperationException(
                     "Hồ sơ đã được thay đổi, lưu trữ hoặc xóa "
                     + "sau khi bạn tải dữ liệu.\n"
-                    + "Hãy đóng form, bấm Refresh rồi mở lại hồ sơ.");
+                    + "Hãy đóng form, bấm Refresh "
+                    + "rồi mở lại hồ sơ.");
             }
         }
 
         public async Task ArchiveStudentRecordAsync(
-    int studentID,
-    int recordID)
+            int studentID,
+            int recordID)
         {
             if (studentID <= 0 || recordID <= 0)
             {
@@ -880,39 +448,195 @@ namespace PRN212_GROUP4.Models
                     "Thông tin hồ sơ không hợp lệ.");
             }
 
-            const string query = @"
-        UPDATE dbo.StudentRecords
-        SET IsArchived = 1
-        OUTPUT INSERTED.RecordID
-        WHERE RecordID = @RecordID
-          AND StudentID = @StudentID
-          AND IsArchived = 0;";
+            using var db = new StudentDataContext();
 
-            using SqlConnection connection =
-                new SqlConnection(connectionString);
+            int affectedRows = await db.StudentRecords
+                .Where(record =>
+                    record.RecordID == recordID
+                    && record.StudentID == studentID
+                    && !record.IsArchived)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(
+                        record => record.IsArchived,
+                        true));
 
-            using SqlCommand command =
-                new SqlCommand(query, connection);
-
-            command.Parameters.Add(
-                "@StudentID",
-                SqlDbType.Int).Value = studentID;
-
-            command.Parameters.Add(
-                "@RecordID",
-                SqlDbType.Int).Value = recordID;
-
-            await connection.OpenAsync();
-
-            object? result = await command.ExecuteScalarAsync();
-
-            if (result == null || result == DBNull.Value)
+            if (affectedRows == 0)
             {
                 throw new InvalidOperationException(
                     "Hồ sơ không còn tồn tại, không thuộc sinh viên "
                     + "đang chọn hoặc đã được lưu trữ.\n"
                     + "Hãy bấm Refresh để cập nhật danh sách.");
             }
+        }
+
+        // ==========================================
+        // KIỂM TRA DỮ LIỆU
+        // ==========================================
+
+        private static void ValidateStudent(
+            Student student,
+            bool isNew)
+        {
+            if (isNew)
+            {
+                student.StudentCode =
+                    student.StudentCode?.Trim() ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(student.StudentCode))
+                {
+                    throw new ArgumentException(
+                        "Vui lòng nhập mã sinh viên.");
+                }
+
+                if (student.StudentCode.Length > 20)
+                {
+                    throw new ArgumentException(
+                        "Mã sinh viên không được vượt quá 20 ký tự.");
+                }
+            }
+
+            student.FullName =
+                student.FullName?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(student.FullName))
+            {
+                throw new ArgumentException(
+                    "Vui lòng nhập họ tên sinh viên.");
+            }
+
+            if (student.FullName.Length > 120)
+            {
+                throw new ArgumentException(
+                    "Họ tên không được vượt quá 120 ký tự.");
+            }
+
+            student.Email = NormalizeOptionalText(student.Email);
+            student.Phone = NormalizeOptionalText(student.Phone);
+
+            if (student.Email != null)
+            {
+                bool validEmail =
+                    student.Email.Length <= 255
+                    && MailAddress.TryCreate(
+                        student.Email,
+                        out var parsedEmail)
+                    && string.Equals(
+                        parsedEmail.Address,
+                        student.Email,
+                        StringComparison.OrdinalIgnoreCase);
+
+                if (!validEmail)
+                {
+                    throw new ArgumentException(
+                        "Email không hợp lệ.");
+                }
+            }
+
+            if (student.Phone != null
+                && student.Phone.Length > 30)
+            {
+                throw new ArgumentException(
+                    "Số điện thoại không được vượt quá 30 ký tự.");
+            }
+
+            if (student.DateOfBirth.HasValue)
+            {
+                student.DateOfBirth =
+                    student.DateOfBirth.Value.Date;
+
+                if (student.DateOfBirth.Value > DateTime.Today)
+                {
+                    throw new ArgumentException(
+                        "Ngày sinh không được lớn hơn "
+                        + "ngày hiện tại.");
+                }
+            }
+
+            if (student.EnrollmentDate.HasValue)
+            {
+                student.EnrollmentDate =
+                    student.EnrollmentDate.Value.Date;
+            }
+
+            string status =
+                student.StudentStatus?.Trim().ToUpperInvariant()
+                ?? string.Empty;
+
+            if (isNew && string.IsNullOrWhiteSpace(status))
+            {
+                status = "ACTIVE";
+            }
+
+            if (status != "ACTIVE"
+                && status != "INACTIVE"
+                && status != "GRADUATED"
+                && status != "SUSPENDED")
+            {
+                throw new ArgumentException(
+                    "Trạng thái sinh viên không hợp lệ.");
+            }
+
+            student.StudentStatus = status;
+        }
+
+        private static void ValidateStudentRecord(
+            StudentRecord record)
+        {
+            record.RecordType =
+                record.RecordType?.Trim() ?? string.Empty;
+
+            record.RecordTitle =
+                record.RecordTitle?.Trim() ?? string.Empty;
+
+            record.RecordContent =
+                NormalizeOptionalText(record.RecordContent);
+
+            if (string.IsNullOrWhiteSpace(record.RecordType))
+            {
+                throw new ArgumentException(
+                    "Vui lòng nhập loại hồ sơ.");
+            }
+
+            if (record.RecordType.Length > 60)
+            {
+                throw new ArgumentException(
+                    "Loại hồ sơ không được vượt quá 60 ký tự.");
+            }
+
+            if (string.IsNullOrWhiteSpace(record.RecordTitle))
+            {
+                throw new ArgumentException(
+                    "Vui lòng nhập tiêu đề hồ sơ.");
+            }
+
+            if (record.RecordTitle.Length > 180)
+            {
+                throw new ArgumentException(
+                    "Tiêu đề không được vượt quá 180 ký tự.");
+            }
+
+            if (record.RecordDate == default)
+            {
+                throw new ArgumentException(
+                    "Vui lòng chọn ngày ghi nhận hồ sơ.");
+            }
+
+            record.RecordDate = record.RecordDate.Date;
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
+        }
+
+        private static bool IsUniqueConstraintError(
+            DbUpdateException exception)
+        {
+            return exception.InnerException is SqlException sqlException
+                && (sqlException.Number == 2601
+                    || sqlException.Number == 2627);
         }
     }
 }
