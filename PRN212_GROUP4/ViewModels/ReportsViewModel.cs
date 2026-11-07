@@ -1,257 +1,172 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 using PRN212_GROUP4.Services;
 
-namespace PRN212_GROUP4.ViewModels
+namespace PRN212_GROUP4.ViewModels;
+
+public sealed class ReportsViewModel : ViewModelBase
 {
-    public class ReportsViewModel : ViewModelBase
+    private readonly AcademicReportService service = new();
+    private bool busy;
+    private string message = "";
+    private ReportCriteria? generatedCriteria;
+
+    public ObservableCollection<Lookup> Students { get; } = new();
+    public ObservableCollection<Lookup> Semesters { get; } = new();
+    public ObservableCollection<Lookup> Classes { get; } = new();
+    public ObservableCollection<AcademicReportRow> Rows { get; } = new();
+
+    public string[] Types { get; } =
     {
-        private readonly DatabaseService databaseService;
-        private readonly IStudentReportService reportService;
+        "Sinh viên", "Lớp", "Kết quả học tập"
+    };
 
-        private int? selectedDepartmentID = 0;
-        private string selectedStatus = "ALL";
+    public string Type { get; set; } = "Sinh viên";
+    public int StudentId { get; set; }
+    public int SemesterId { get; set; }
+    public int ClassId { get; set; }
 
-        private bool isBusy;
-        private string statusMessage = "Loading report...";
+    public bool CanInteract => !busy;
 
-        public ObservableCollection<Department> Departments { get; }
-            = new();
+    public string Message
+    {
+        get => message;
+        private set => SetProperty(ref message, value);
+    }
 
-        public ObservableCollection<Student> ReportStudents { get; }
-            = new();
+    public AsyncRelayCommand GenerateCommand { get; }
+    public AsyncRelayCommand ExportCsvCommand { get; }
 
-        public string[] StatusOptions { get; } =
+    public ReportsViewModel()
+    {
+        GenerateCommand = new AsyncRelayCommand(
+            GenerateAsync, Error, () => !busy);
+
+        ExportCsvCommand = new AsyncRelayCommand(
+            ExportAsync, Error, () => !busy && Rows.Count > 0);
+    }
+
+    private void Error(Exception ex)
+    {
+        Rows.Clear();
+        generatedCriteria = null;
+        Message = ex.Message;
+        ExportCsvCommand.RaiseCanExecuteChanged();
+    }
+
+    private void Busy(bool value)
+    {
+        busy = value;
+        OnPropertyChanged(nameof(CanInteract));
+        GenerateCommand.RaiseCanExecuteChanged();
+        ExportCsvCommand.RaiseCanExecuteChanged();
+    }
+
+    public async Task InitializeAsync()
+    {
+        Busy(true);
+
+        try
         {
-            "ALL",
-            "ACTIVE",
-            "INACTIVE",
-            "GRADUATED",
-            "SUSPENDED"
-        };
+            var lookups = await new CourseEnrollmentService()
+                .LookupsAsync("F16");
 
-        public AsyncRelayCommand GenerateCommand { get; }
-
-        public AsyncRelayCommand ExportCsvCommand { get; }
-
-        public int? SelectedDepartmentID
+            Fill(Students, lookups.Students);
+            Fill(Semesters, lookups.Semesters);
+            Fill(Classes, lookups.Classes);
+        }
+        catch (Exception ex)
         {
-            get => selectedDepartmentID;
-
-            set => SetProperty(ref selectedDepartmentID, value);
+            Error(ex);
+        }
+        finally
+        {
+            Busy(false);
         }
 
-        public string SelectedStatus
-        {
-            get => selectedStatus;
+        await GenerateCommand.ExecuteAsync();
+    }
 
-            set => SetProperty(ref selectedStatus, value);
+    private static void Fill(
+        ObservableCollection<Lookup> target,
+        List<Lookup> values)
+    {
+        target.Clear();
+        target.Add(new Lookup(0, "Tất cả"));
+
+        foreach (var value in values)
+        {
+            target.Add(value);
         }
+    }
 
-        public bool IsBusy
+    private async Task GenerateAsync()
+    {
+        Busy(true);
+
+        try
         {
-            get => isBusy;
+            Rows.Clear();
+            generatedCriteria = null;
 
-            private set
+            var criteria = new ReportCriteria(
+                Type, StudentId, SemesterId, ClassId);
+
+            foreach (var row in await service.GenerateAsync(criteria))
             {
-                if (SetProperty(ref isBusy, value))
-                {
-                    OnPropertyChanged(nameof(CanInteract));
-
-                    RefreshCommands();
-                }
+                Rows.Add(row);
             }
+
+            generatedCriteria = criteria;
+
+            Message = Rows.Count == 0
+                ? "Không có dữ liệu phù hợp."
+                : $"{Type}: {Rows.Count} dòng. "
+                  + "Ô trống = chưa có kết quả hoặc ngoài quyền xem GPA.";
+        }
+        finally
+        {
+            Busy(false);
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        if (generatedCriteria == null)
+        {
+            return;
         }
 
-        public bool CanInteract => !IsBusy;
+        Busy(true);
 
-        public string StatusMessage
+        try
         {
-            get => statusMessage;
+            // Kiểm tra lại quyền và dữ liệu trước khi xuất.
+            var data = await service.GenerateAsync(generatedCriteria);
 
-            private set => SetProperty(ref statusMessage, value);
-        }
+            Rows.Clear();
 
-        public ReportsViewModel(
-            IStudentReportService reportService)
-        {
-            this.reportService = reportService
-                ?? throw new ArgumentNullException(
-                    nameof(reportService));
-
-            databaseService = new DatabaseService();
-
-            Departments.Add(new Department
+            foreach (var row in data)
             {
-                DepartmentID = 0,
-                DepartmentName = "All departments"
-            });
-
-            GenerateCommand = new AsyncRelayCommand(
-                GenerateReportAsync,
-                HandleGenerateError,
-                () => !IsBusy);
-
-            ExportCsvCommand = new AsyncRelayCommand(
-                ExportCsvAsync,
-                HandleExportError,
-                () => !IsBusy && ReportStudents.Count > 0);
-
-            ReportStudents.CollectionChanged += (_, _) =>
-                ExportCsvCommand.RaiseCanExecuteChanged();
-        }
-
-        private void RefreshCommands()
-        {
-            GenerateCommand.RaiseCanExecuteChanged();
-            ExportCsvCommand.RaiseCanExecuteChanged();
-        }
-
-        private async Task GenerateReportAsync()
-        {
-            int departmentID = SelectedDepartmentID ?? 0;
-            string status = SelectedStatus;
-
-            IsBusy = true;
-            StatusMessage = "Loading report...";
-
-            try
-            {
-                var students =
-                    await databaseService.GetStudentsAsync();
-
-                // Giữ cách lấy danh sách khoa từ các sinh viên hiện có.
-                var departments = students
-                    .Where(student => student.DepartmentID.HasValue)
-                    .GroupBy(student => student.DepartmentID!.Value)
-                    .Select(group => new Department
-                    {
-                        DepartmentID = group.Key,
-
-                        DepartmentName =
-                            group.First().DepartmentName
-                            ?? $"Department #{group.Key}"
-                    })
-                    .OrderBy(department => department.DepartmentName)
-                    .ToList();
-
-                if (!departments.Any(
-                    department =>
-                        department.DepartmentID == departmentID))
-                {
-                    departmentID = 0;
-                }
-
-                // Chuẩn bị kết quả trước khi thay danh sách hiển thị.
-                var results = students
-                    .Where(student =>
-                        (departmentID == 0
-                            || student.DepartmentID == departmentID)
-                        &&
-                        (status == "ALL"
-                            || student.StudentStatus == status))
-                    .ToList();
-
-                Departments.Clear();
-
-                Departments.Add(new Department
-                {
-                    DepartmentID = 0,
-                    DepartmentName = "All departments"
-                });
-
-                foreach (var department in departments)
-                {
-                    Departments.Add(department);
-                }
-
-                SelectedDepartmentID = departmentID;
-
-                ReportStudents.Clear();
-
-                foreach (var student in results)
-                {
-                    ReportStudents.Add(student);
-                }
-
-                StatusMessage = ReportStudents.Count == 0
-                    ? "No students match the selected filters."
-                    : "Report generated at "
-                        + DateTime.Now.ToString(
-                            "dd/MM/yyyy HH:mm:ss");
+                Rows.Add(row);
             }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
 
-        private async Task ExportCsvAsync()
-        {
-            if (ReportStudents.Count == 0)
+            if (data.Count == 0)
             {
+                Message = "Không còn dữ liệu được phép xuất.";
                 return;
             }
 
-            // Xuất danh sách trong bảng, không truy vấn lại database.
-            var students = ReportStudents.ToList();
+            string? file = await AcademicCsvExporter.ExportAsync(data);
 
-            string previousStatus = StatusMessage;
-
-            IsBusy = true;
-            StatusMessage = "Exporting report...";
-
-            try
-            {
-                string? filePath =
-                    await reportService.ExportCsvAsync(students);
-
-                if (filePath == null)
-                {
-                    // Người dùng hủy chọn nơi lưu.
-                    StatusMessage = previousStatus;
-
-                    return;
-                }
-
-                StatusMessage =
-                    $"Exported {students.Count} students at "
-                    + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
-
-                reportService.ShowInformation(
-                    $"Đã xuất {students.Count} sinh viên thành công."
-                    + "\n\nFile được lưu tại:\n"
-                    + filePath);
-            }
-            finally
-            {
-                IsBusy = false;
-            }
+            Message = file == null
+                ? "Đã hủy xuất file."
+                : $"Đã xuất {data.Count} dòng: {file}";
         }
-
-        private void HandleGenerateError(Exception ex)
+        finally
         {
-            StatusMessage =
-                "Không thể tạo báo cáo. "
-                + "Dữ liệu đang hiển thị có thể chưa được cập nhật.";
-
-            reportService.ShowWarning(
-                "Không thể tạo báo cáo sinh viên.\n\n"
-                + ex.Message);
-        }
-
-        private void HandleExportError(Exception ex)
-        {
-            StatusMessage =
-                "Xuất báo cáo thất bại. Vui lòng thử lại.";
-
-            reportService.ShowWarning(
-                "Không thể xuất file CSV.\n\n"
-                + ex.Message);
+            Busy(false);
         }
     }
 }
