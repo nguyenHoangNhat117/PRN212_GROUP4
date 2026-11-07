@@ -28,6 +28,8 @@ namespace PRN212_GROUP4.ViewModels
         // Bộ lọc riêng cho bảng trên Dashboard.
         public ListCollectionView DashboardStudents { get; }
 
+        public AsyncRelayCommand RefreshCommand { get; }
+
         public AsyncRelayCommand AddStudentCommand { get; }
 
         public AsyncRelayCommand EditStudentCommand { get; }
@@ -35,6 +37,20 @@ namespace PRN212_GROUP4.ViewModels
         public RelayCommand ViewRecordsCommand { get; }
 
         public RelayCommand SearchCommand { get; }
+
+        public bool CanManageStudents =>
+        AppSession.DisplayAccess?.CanStaff("F05") == true;
+
+        public string ProfileHeading =>
+            CanManageStudents
+                ? "Quản lý sinh viên"
+                : "Hồ sơ của tôi";
+
+        public string ProfileDescription =>
+            CanManageStudents
+                ? "Tra cứu và cập nhật hồ sơ sinh viên trong khoa phụ trách."
+                : "Thông tin cá nhân của bạn. "
+                  + "Sinh viên được cập nhật email và số điện thoại.";
 
         public string SearchText
         {
@@ -119,10 +135,16 @@ namespace PRN212_GROUP4.ViewModels
                 Filter = MatchesSearch
             };
 
-            AddStudentCommand = new AsyncRelayCommand(
-                AddStudentAsync,
-                HandleCommandError,
+            RefreshCommand = new AsyncRelayCommand(
+            LoadStudentsAsync,
+            HandleCommandError,
                 () => !IsBusy);
+
+            AddStudentCommand = new AsyncRelayCommand(
+            AddStudentAsync,
+            HandleCommandError,
+            () => !IsBusy
+                && AppSession.DisplayAccess?.Can("F05") == true);
 
             EditStudentCommand = new AsyncRelayCommand(
                 EditStudentAsync,
@@ -130,8 +152,10 @@ namespace PRN212_GROUP4.ViewModels
                 () => !IsBusy && SelectedStudent != null);
 
             ViewRecordsCommand = new RelayCommand(
-                ViewRecords,
-                () => !IsBusy && SelectedStudent != null);
+            ViewRecords,
+            () => !IsBusy
+            && SelectedStudent != null
+                && AppSession.DisplayAccess?.Can("F05") == true);
 
             SearchCommand = new RelayCommand(
                 SearchStudents,
@@ -140,6 +164,7 @@ namespace PRN212_GROUP4.ViewModels
 
         private void RefreshCommands()
         {
+            RefreshCommand.RaiseCanExecuteChanged();
             AddStudentCommand.RaiseCanExecuteChanged();
             EditStudentCommand.RaiseCanExecuteChanged();
             ViewRecordsCommand.RaiseCanExecuteChanged();
@@ -245,8 +270,8 @@ namespace PRN212_GROUP4.ViewModels
             }
 
             SelectedStudent = Students.FirstOrDefault(
-                student =>
-                    student.StudentID == selectedStudentID);
+            student => student.StudentID == selectedStudentID)
+            ?? Students.FirstOrDefault();
 
             DashboardStudents.Refresh();
 

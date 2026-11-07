@@ -7,169 +7,59 @@
         MinWidth="850"
         MinHeight="520"
         WindowStartupLocation="CenterOwner"
-        Background="#F6F5F2"
-        FontFamily="Segoe UI"
+        Background="#FFFDF5"
+        FontFamily="{StaticResource PlayfulGeometricReading}"
         UseLayoutRounding="True">
-
-    <Window.Resources>
-
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E8E3DD"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Padding" Value="20"/>
-        </Style>
-
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#C2410C"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#C2410C"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="18,10"/>
-            <Setter Property="Cursor" Value="Hand"/>
-
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
-
-                            <ContentPresenter
-                                Margin="{TemplateBinding Padding}"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"/>
-                        </Border>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="0.85"/>
-                            </Trigger>
-
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#292524"/>
-                            </Trigger>
-
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="DetailLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#756E66"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Margin" Value="0,16,0,5"/>
-        </Style>
-
-        <Style x:Key="DetailValue" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#292524"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
-
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#F5F3EF"/>
-            <Setter Property="Foreground" Value="#655E57"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="BorderThickness" Value="0"/>
-        </Style>
-
-        <Style TargetType="DataGridCell">
-            <Setter Property="Foreground" Value="#3E3934"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridCell">
-                        <Border Background="{TemplateBinding Background}"
-                                Padding="12,0">
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="DataGridRow">
-            <Setter Property="BorderBrush" Value="#F0ECE6"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FFF6ED"/>
-                </Trigger>
-
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#FFE8D6"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-    </Window.Resources>
 
     <Grid Margin="28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- HEADER -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Student records"
-                       FontSize="26"
-                       FontWeight="Bold"
-                       Foreground="#292524"/>
+        <!-- Tiêu đề -->
+        <StackPanel Margin="0,0,0,20">
+            <TextBlock
+                Text="Student records"
+                FontFamily="{StaticResource PlayfulGeometricDisplay}"
+                FontSize="26"
+                FontWeight="Bold"
+                Foreground="#253044"/>
 
-            <StackPanel Orientation="Horizontal"
-                        Margin="0,8,0,0">
-
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="{Binding Student.StudentCode}"
                            FontWeight="SemiBold"
                            Foreground="#A9380A"/>
 
-                <TextBlock Text=" — "
-                           Foreground="#756E66"/>
+                <TextBlock Text=" — " Foreground="#756E66"/>
 
                 <TextBlock Text="{Binding Student.FullName}"
                            Foreground="#655E57"/>
             </StackPanel>
         </StackPanel>
 
-        <!-- TOOLBAR -->
+        <!-- Thanh công cụ -->
         <Grid x:Name="ToolbarPanel"
               Grid.Row="1"
               Margin="0,0,0,18"
               IsEnabled="{Binding CanInteract}">
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <CheckBox Content="Include archived records"
-                      IsChecked="{Binding IncludeArchived,
-                                          Mode=TwoWay,
-                                          UpdateSourceTrigger=PropertyChanged}"
-                      Command="{Binding RefreshCommand}"
-                      Foreground="#3E3934"
-                      FontSize="13"
-                      VerticalAlignment="Center"/>
+            <CheckBox
+                Content="Include archived records"
+                IsChecked="{Binding IncludeArchived,
+                    Mode=TwoWay,
+                    UpdateSourceTrigger=PropertyChanged}"
+                Command="{Binding RefreshCommand}"
+                Foreground="#3E3934"
+                FontSize="13"
+                VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1"
                         Orientation="Horizontal"
@@ -180,21 +70,21 @@
                         Style="{StaticResource ActionButton}"
                         Background="White"
                         Foreground="#3E3934"
-                        BorderBrush="#DED7CE"
+                        BorderBrush="#9298A4"
                         Margin="0,0,10,0"/>
 
                 <Button Content="Edit Record"
                         Command="{Binding EditRecordCommand}"
                         Style="{StaticResource ActionButton}"
-                        Background="#F0EDE8"
+                        Background="#FFF0DF"
                         Foreground="#3E3934"
-                        BorderBrush="#DED7CE"
+                        BorderBrush="#9298A4"
                         Margin="0,0,10,0"/>
 
                 <Button Content="Archive"
                         Command="{Binding ArchiveRecordCommand}"
                         Style="{StaticResource ActionButton}"
-                        Background="#FFF0E5"
+                        Background="#FFF0DF"
                         Foreground="#9A3412"
                         BorderBrush="#FED7AA"
                         Margin="0,0,10,0"/>
@@ -205,59 +95,60 @@
             </StackPanel>
         </Grid>
 
-        <!-- CONTENT -->
+        <!-- Nội dung -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition/>
                 <ColumnDefinition Width="20"/>
                 <ColumnDefinition Width="310"/>
             </Grid.ColumnDefinitions>
 
-            <!-- RECORD LIST -->
+            <!-- Bảng lịch sử -->
             <Border Grid.Column="0"
-                    Style="{StaticResource Card}">
+                    Style="{StaticResource Card}"
+                    Margin="0,0,0,6">
 
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Record history"
                                FontSize="17"
                                FontWeight="SemiBold"
-                               Foreground="#292524"
+                               Foreground="#253044"
                                Margin="0,0,0,18"/>
 
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding Records}"
-                              SelectedItem="{Binding SelectedRecord,
-                                                     Mode=TwoWay}"
-                              IsEnabled="{Binding CanInteract}"
-                              AutoGenerateColumns="False"
-                              IsReadOnly="True"
-                              CanUserAddRows="False"
-                              CanUserDeleteRows="False"
-                              CanUserResizeRows="False"
-                              SelectionMode="Single"
-                              SelectionUnit="FullRow"
-                              HeadersVisibility="Column"
-                              GridLinesVisibility="None"
-                              RowHeaderWidth="0"
-                              RowHeight="50"
-                              ColumnHeaderHeight="44"
-                              BorderThickness="0"
-                              Background="White"
-                              RowBackground="White"
-                              AlternatingRowBackground="#FCFBF9"
-                              HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Auto">
+                    <DataGrid
+                        Grid.Row="1"
+                        ItemsSource="{Binding Records}"
+                        SelectedItem="{Binding SelectedRecord, Mode=TwoWay}"
+                        IsEnabled="{Binding CanInteract}"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        CanUserAddRows="False"
+                        CanUserDeleteRows="False"
+                        CanUserResizeRows="False"
+                        SelectionMode="Single"
+                        SelectionUnit="FullRow"
+                        HeadersVisibility="Column"
+                        GridLinesVisibility="None"
+                        RowHeaderWidth="0"
+                        RowHeight="50"
+                        ColumnHeaderHeight="44"
+                        BorderThickness="0"
+                        Background="White"
+                        RowBackground="White"
+                        AlternatingRowBackground="#FCFBF9"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Auto">
 
                         <DataGrid.Columns>
                             <DataGridTextColumn
                                 Header="DATE"
                                 Binding="{Binding RecordDate,
-                                                  StringFormat={}{0:dd/MM/yyyy}}"
+                                    StringFormat={}{0:dd/MM/yyyy}}"
                                 Width="110"/>
 
                             <DataGridTextColumn
@@ -280,25 +171,26 @@
                 </Grid>
             </Border>
 
-            <!-- RECORD DETAILS -->
+            <!-- Chi tiết -->
             <Border Grid.Column="2"
-                    Style="{StaticResource Card}">
+                    Style="{StaticResource Card}"
+                    Margin="0,0,6,6">
 
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Record details"
                                FontSize="17"
                                FontWeight="SemiBold"
-                               Foreground="#292524"
+                               Foreground="#253044"
                                Margin="0,0,0,18"/>
 
                     <Grid Grid.Row="1">
 
-                        <!-- EMPTY SELECTION -->
+                        <!-- Chưa chọn hồ sơ -->
                         <TextBlock
                             Text="Select a record to view its details."
                             Foreground="#756E66"
@@ -324,7 +216,7 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <!-- SELECTED RECORD -->
+                        <!-- Hồ sơ đã chọn -->
                         <ScrollViewer
                             VerticalScrollBarVisibility="Auto"
                             HorizontalScrollBarVisibility="Disabled">
@@ -346,7 +238,7 @@
                             </ScrollViewer.Style>
 
                             <StackPanel Margin="0,0,8,0">
-                                <Border Background="#FFF0E5"
+                                <Border Background="#FFF0DF"
                                         CornerRadius="10"
                                         Padding="14">
 
@@ -368,7 +260,7 @@
 
                                 <TextBlock
                                     Text="{Binding SelectedRecord.RecordDate,
-                                                   StringFormat={}{0:dd/MM/yyyy}}"
+                                        StringFormat={}{0:dd/MM/yyyy}}"
                                     Style="{StaticResource DetailValue}"/>
 
                                 <TextBlock Text="Status"
@@ -383,7 +275,7 @@
 
                                 <TextBlock
                                     Text="{Binding SelectedRecord.RecordContent,
-                                                   TargetNullValue='No content'}"
+                                        TargetNullValue='No content'}"
                                     Foreground="#3E3934"
                                     FontSize="14"
                                     TextWrapping="Wrap"/>
@@ -394,7 +286,6 @@
             </Border>
         </Grid>
 
-        <!-- STATUS -->
         <TextBlock x:Name="LoadStatus"
                    Grid.Row="3"
                    Text="{Binding StatusMessage}"

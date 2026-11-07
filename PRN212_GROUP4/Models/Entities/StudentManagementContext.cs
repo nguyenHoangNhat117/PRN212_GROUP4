@@ -280,8 +280,9 @@ public partial class StudentManagementContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Enrollmen__Class__160F4887");
 
-            entity.HasOne(d => d.CourseEnrollment).WithOne(p => p.Enrollment)
-                .HasForeignKey<Enrollment>(d => d.CourseEnrollmentId)
+            entity.HasOne(d => d.CourseEnrollment)
+                .WithMany(p => p.Enrollments)
+                .HasForeignKey(d => d.CourseEnrollmentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Enrollmen__Cours__14270015");
 
@@ -425,6 +426,7 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Student>(entity =>
         {
+            entity.ToTable("Students", tb => tb.UseSqlOutputClause(false));
             entity.HasKey(e => e.StudentId).HasName("PK__Students__32C52A79C94409F3");
 
             entity.HasIndex(e => e.StudentCode, "UQ__Students__1FC88604B9CD4BC7").IsUnique();
@@ -466,6 +468,7 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<StudentRecord>(entity =>
         {
+            entity.ToTable("StudentRecords", tb => tb.UseSqlOutputClause(false));
             entity.HasKey(e => e.RecordId).HasName("PK__StudentR__FBDF78C91F64FE1A");
 
             entity.HasIndex(e => new { e.StudentId, e.IsArchived }, "IX_Records_Student");

@@ -1,166 +1,158 @@
-﻿using System;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Windows;
+using PRN212_GROUP4.Services;
 using PRN212_GROUP4.ViewModels;
 using PRN212_GROUP4.Views;
 
-namespace PRN212_GROUP4
+namespace PRN212_GROUP4;
+
+public partial class MainWindow : Window
 {
-    public partial class MainWindow : Window
+    private bool loggingOut;
+
+    public MainWindow()
     {
-        private readonly StudentViewModel studentViewModel;
-        private readonly StudentView studentPage;
+        InitializeComponent();
 
-        private ReportsView? reportsPage;
+        var access = AppSession.DisplayAccess
+            ?? throw new UnauthorizedAccessException(
+                "Vui lòng đăng nhập.");
 
-        private readonly Brush accentBrush =
-            new SolidColorBrush(Color.FromRgb(194, 65, 12));
+        Identity.Text = access.DisplayName;
 
-        private readonly Brush navigationTextBrush =
-            new SolidColorBrush(Color.FromRgb(209, 204, 198));
+        RoleLabel.Text =
+            access.StaffDepartmentId != null ? "NHÂN VIÊN HỌC VỤ" :
+            access.LecturerId != null ? "GIẢNG VIÊN" :
+            access.StudentId != null ? "SINH VIÊN" :
+            "TÀI KHOẢN";
 
-        public MainWindow()
+        ScopeLabel.Text =
+            access.StaffDepartmentId != null
+                ? "Quản lý dữ liệu trong phạm vi khoa được cấp."
+                : access.LecturerId != null
+                    ? "Thông tin các lớp được phân công giảng dạy."
+                    : "Không gian cá nhân · Chỉ hiển thị hồ sơ "
+                      + "và đăng ký của bạn.";
+
+        StudentsButton.Visibility = access.Can("F03")
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        EnrollmentButton.Visibility = access.Can("F09")
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        ReportsButton.Visibility = access.Can("F16")
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        Closed += (_, _) =>
         {
-            InitializeComponent();
+            MainFrame.Content = null;
+            AppSession.Clear();
 
-            studentViewModel = new StudentViewModel();
-
-            DataContext = studentViewModel;
-
-            studentPage = new StudentView(studentViewModel);
-
-            Loaded += MainWindow_Loaded;
-        }
-
-        private async void MainWindow_Loaded(
-            object sender,
-            RoutedEventArgs e)
-        {
-            Loaded -= MainWindow_Loaded;
-
-            try
+            if (!loggingOut)
             {
-                await studentViewModel.LoadStudentsAsync();
+                Application.Current.Shutdown();
             }
-            catch (Exception ex)
+        };
+
+        Loaded += (_, _) =>
+        {
+            if (access.Can("F03"))
             {
-                MessageBox.Show(
-                    "Không thể tải danh sách sinh viên.\n\n"
-                    + ex.Message,
-                    "Lỗi tải dữ liệu",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                Students_Click(this, new RoutedEventArgs());
             }
-        }
-
-        private void DashboardButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            MainFrame.Visibility = Visibility.Collapsed;
-            DashboardContent.Visibility = Visibility.Visible;
-
-            PageTitle.Text = "Dashboard";
-            PageSubtitle.Text = "Student Management / Overview";
-
-            UpdateNavigation("dashboard");
-        }
-
-        private void StudentsButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            DashboardContent.Visibility = Visibility.Collapsed;
-            MainFrame.Visibility = Visibility.Visible;
-
-            MainFrame.Content = studentPage;
-
-            PageTitle.Text = "Students";
-            PageSubtitle.Text =
-                "Student Management / Student Profiles";
-
-            UpdateNavigation("students");
-        }
-
-        private void ReportsButton_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            reportsPage ??= new ReportsView();
-
-            DashboardContent.Visibility = Visibility.Collapsed;
-            MainFrame.Visibility = Visibility.Visible;
-
-            MainFrame.Content = reportsPage;
-
-            PageTitle.Text = "Reports";
-            PageSubtitle.Text =
-                "Student Management / Academic Reports";
-
-            UpdateNavigation("reports");
-        }
-
-        private void UpdateNavigation(string activePage)
-        {
-            SetNavigationButton(
-                DashboardButton,
-                activePage == "dashboard");
-
-            SetNavigationButton(
-                StudentsButton,
-                activePage == "students");
-
-            SetNavigationButton(
-                ReportsButton,
-                activePage == "reports");
-        }
-
-        private void SetNavigationButton(
-            Button button,
-            bool isActive)
-        {
-            button.Background = isActive
-                ? accentBrush
-                : Brushes.Transparent;
-
-            button.Foreground = isActive
-                ? Brushes.White
-                : navigationTextBrush;
-        }
-
-        private async void BtnTestConnection_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            try
+            else if (access.Can("F09"))
             {
-                using var db =
-                    new Models.Entities.StudentManagementContext();
-
-                bool connected =
-                    await db.Database.CanConnectAsync();
-
-                MessageBox.Show(
-                    connected
-                        ? "Kết nối database bằng EF Core thành công!"
-                        : "Không kết nối được database.\n"
-                          + "Hãy kiểm tra thông tin trong appsettings.json.",
-                    "Kiểm tra kết nối",
-                    MessageBoxButton.OK,
-                    connected
-                        ? MessageBoxImage.Information
-                        : MessageBoxImage.Warning);
+                Enrollment_Click(this, new RoutedEventArgs());
             }
-            catch (Exception ex)
+            else if (access.Can("F16"))
             {
-                MessageBox.Show(
-                    "Lỗi kết nối EF Core:\n\n" + ex.Message,
-                    "Lỗi kết nối",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                Reports_Click(this, new RoutedEventArgs());
             }
+            else
+            {
+                PageHeading.Text = "Tài khoản";
+                ScopeLabel.Text =
+                    "Tài khoản chưa được cấp chức năng trong module này.";
+            }
+        };
+    }
+
+    private void Navigate(
+        string title,
+        System.Windows.Controls.Button active)
+    {
+        PageHeading.Text = title;
+
+        foreach (var button in new[]
+        {
+            StudentsButton,
+            EnrollmentButton,
+            ReportsButton
+        })
+        {
+            button.Tag = button == active ? "active" : "";
         }
+    }
+
+    private async void Students_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("Hồ sơ sinh viên", StudentsButton);
+
+        var vm = new StudentViewModel();
+        MainFrame.Content = new StudentView(vm);
+
+        try
+        {
+            await vm.LoadStudentsAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                ex.Message,
+                "Không tải được hồ sơ");
+        }
+    }
+
+    private void Enrollment_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("Đăng ký môn học", EnrollmentButton);
+        MainFrame.Content = new EnrollmentView();
+    }
+
+    private void Reports_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("Báo cáo học tập", ReportsButton);
+        MainFrame.Content = new ReportsView();
+    }
+
+    private void Logout_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        loggingOut = true;
+        Close();
+
+        ((App)Application.Current).ShowLogin();
+    }
+
+    private void ChangePassword_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var dialog = new ChangePasswordWindow
+        {
+            Owner = this
+        };
+
+        dialog.ShowDialog();
     }
 }

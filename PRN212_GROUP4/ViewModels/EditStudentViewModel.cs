@@ -34,6 +34,10 @@ namespace PRN212_GROUP4.ViewModels
 
         public AsyncRelayCommand SaveCommand { get; }
 
+        public bool CanEditAcademicFields =>
+        PRN212_GROUP4.Services.AppSession.DisplayAccess
+        ?.CanStaff("F03") == true;
+
         public event EventHandler? SaveSucceeded;
 
         public bool IsBusy
