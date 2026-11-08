@@ -36,8 +36,12 @@ try:
     if b'Temporary password' in output and not sent1:os.write(master,b'Temporary!987\n');sent1=True
     if b'Confirm:' in output and not sent2:os.write(master,b'Temporary!987\n');sent2=True
    if proc.poll() is not None:break
-  if proc.poll() is None:proc.kill();raise RuntimeError('Bootstrap prompt timed out')
-  os.close(master);return proc.wait()
+  # PTY EOF may arrive just before the OS reports process exit.
+  try: code=proc.wait(timeout=2)
+  except subprocess.TimeoutExpired:
+   proc.kill();proc.wait();raise RuntimeError('Bootstrap prompt timed out')
+  finally: os.close(master)
+  return code
  assert bootstrap('real_admin',True)==0,'First admin creation failed'
  assert bootstrap('second_admin',True)!=0,'Second bootstrap must be refused'
  assert bootstrap('real_admin',False)==0,'Password reset failed'
