@@ -1,4 +1,4 @@
-﻿using System.Net.Mail;
+using System.Net.Mail;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models;
@@ -103,6 +103,11 @@ internal static class StudentValidation
 
     internal static void ValidateStudentRecord(StudentRecord record)
     {
+        record.DocumentNumber = NormalizeOptionalText(record.DocumentNumber)?.ToUpperInvariant();
+        if (record.DocumentNumber == null || record.DocumentNumber.Length > 80)
+        {
+            throw new ArgumentException("Mã chứng từ là bắt buộc và không vượt quá 80 ký tự.");
+        }
         record.RecordType = record.RecordType?.Trim() ?? string.Empty;
         record.RecordTitle = record.RecordTitle?.Trim() ?? string.Empty;
         record.RecordContent = NormalizeOptionalText(record.RecordContent);

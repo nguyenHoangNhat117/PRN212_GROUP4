@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace PRN212_GROUP4.Models.Entities;
@@ -10,6 +10,8 @@ public partial class StudentRecord
     public int StudentId { get; set; }
 
     public string RecordType { get; set; } = null!;
+
+    public string? DocumentNumber { get; set; }
 
     public string RecordTitle { get; set; } = null!;
 

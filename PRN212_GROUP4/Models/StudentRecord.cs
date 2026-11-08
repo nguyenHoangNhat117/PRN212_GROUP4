@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,8 @@ namespace PRN212_GROUP4.Models
         public int StudentID { get; set; }
 
         public string RecordType { get; set; } = string.Empty;
+
+        public string? DocumentNumber { get; set; }
 
         public string RecordTitle { get; set; } = string.Empty;
 

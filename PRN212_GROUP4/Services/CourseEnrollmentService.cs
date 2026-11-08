@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models;
@@ -8,6 +8,13 @@ namespace PRN212_GROUP4.Services;
 
 public sealed class CourseEnrollmentService
 {
+    private readonly Func<StudentManagementContext> createDb;
+
+    public CourseEnrollmentService(Func<StudentManagementContext>? createDb = null)
+    {
+        this.createDb = createDb ?? (() => new StudentManagementContext());
+    }
+
     public async Task<int> RegisterAsync(
         int studentId,
         int courseId,
@@ -19,26 +26,12 @@ public sealed class CourseEnrollmentService
                 "Chọn sinh viên, môn và học kỳ.");
         }
 
-        using var db = new StudentManagementContext();
-        using var transaction = await db.Database
-            .BeginTransactionAsync(IsolationLevel.Serializable);
+        using var db = createDb();
 
         var access = await AccessService.RequireAsync(db, "F08");
 
         await AccessService.EnsureStudentAsync(
             db, access, studentId, "F08");
-
-        bool exists = await db.CourseEnrollments.AnyAsync(enrollment =>
-            enrollment.StudentId == studentId
-            && enrollment.CourseId == courseId
-            && enrollment.SemesterId == semesterId);
-
-        if (exists)
-        {
-            throw new InvalidOperationException(
-                "Đăng ký môn/học kỳ đã tồn tại, kể cả đăng ký đã hủy. "
-                + "Hãy liên hệ học vụ để xử lý.");
-        }
 
         var output = new SqlParameter(
             "@RegistrationId", SqlDbType.Int)
@@ -57,9 +50,12 @@ public sealed class CourseEnrollmentService
                 new SqlParameter("@t", semesterId),
                 output);
 
-            await transaction.CommitAsync();
-
             return (int)output.Value;
+        }
+        catch (SqlException ex) when (ex.Number == 51124)
+        {
+            throw new InvalidOperationException(
+                "Đăng ký đã có điểm. Vui lòng liên hệ học vụ xử lý.", ex);
         }
         catch (SqlException ex)
             when (ex.Number is 2601 or 2627 or 51123)
@@ -125,7 +121,7 @@ public sealed class CourseEnrollmentService
             throw new ArgumentException("Trạng thái không hợp lệ.");
         }
 
-        using var db = new StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, "F09");
 
         return await Scoped(db, access, "F09")
@@ -159,7 +155,7 @@ public sealed class CourseEnrollmentService
         List<Lookup> Semesters,
         List<Lookup> Classes)> LookupsAsync(string function = "F09")
     {
-        using var db = new StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, function);
 
         var students = await AccessService.Students(db, access, function)
@@ -199,7 +195,7 @@ public sealed class CourseEnrollmentService
 
     public async Task<List<Lookup>> RegistrationStudentsAsync()
     {
-        using var db = new StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, "F08");
 
         return await AccessService.Students(db, access, "F08")

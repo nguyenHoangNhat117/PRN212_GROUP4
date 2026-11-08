@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using PRN212_GROUP4.Services;
 
 namespace PRN212_GROUP4.Views;
@@ -18,6 +18,15 @@ public partial class LoginWindow : Window
         RoutedEventArgs e)
     {
         if (busy)
+        {
+            return;
+        }
+
+        var errors = LoginValidation.Validate(Username.Text, Password.Password);
+        UsernameError.Text = errors.Username ?? "";
+        PasswordError.Text = errors.Password ?? "";
+        Message.Text = "";
+        if (!errors.IsValid)
         {
             return;
         }

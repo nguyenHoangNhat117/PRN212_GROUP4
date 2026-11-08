@@ -102,6 +102,7 @@ public partial class MainWindow : Window
     {
         Navigate("Hồ sơ sinh viên", StudentsButton);
 
+        long sessionVersion = AppSession.Version;
         var vm = new StudentViewModel();
         MainFrame.Content = new StudentView(vm);
 
@@ -111,6 +112,8 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            // A completed old request must not reopen UI after logout.
+            if (!IsVisible || AppSession.Version != sessionVersion) return;
             MessageBox.Show(
                 this,
                 ex.Message,

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
@@ -24,6 +24,8 @@ namespace PRN212_GROUP4.ViewModels
         public int? CreatedRecordID { get; private set; }
 
         public event EventHandler? SaveSucceeded;
+
+        public string? SavedWarning { get; private set; }
 
         public DateTime? RecordDate
         {
@@ -102,9 +104,9 @@ namespace PRN212_GROUP4.ViewModels
 
                 NewRecord.RecordDate = RecordDate.Value.Date;
 
-                CreatedRecordID =
-                    await databaseService.AddStudentRecordAsync(
-                        NewRecord);
+                var result = await databaseService.AddStudentRecordAsync(NewRecord);
+                CreatedRecordID = result.RecordId;
+                SavedWarning = result.Warning;
 
                 isSaved = true;
 

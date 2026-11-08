@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models.Entities;
 
@@ -94,6 +94,13 @@ public static class PasswordCodec
 
 public sealed class AuthenticationService
 {
+    private readonly Func<StudentManagementContext> createDb;
+
+    public AuthenticationService(Func<StudentManagementContext>? createDb = null)
+    {
+        this.createDb = createDb ?? (() => new StudentManagementContext());
+    }
+
     // Chỉ dùng sau khi đã xác thực mật khẩu nhưng tài khoản
     // bắt buộc đổi mật khẩu trước khi được vào ứng dụng.
     private int? pendingUserId;
@@ -146,7 +153,7 @@ public sealed class AuthenticationService
                 "Nhập tài khoản và mật khẩu.");
         }
 
-        using var db = new StudentManagementContext();
+        using var db = createDb();
 
         var user = await Accounts(db).SingleOrDefaultAsync(
             account => account.Username == username.Trim());
@@ -201,7 +208,7 @@ public sealed class AuthenticationService
                 "Vui lòng đăng nhập lại.");
         }
 
-        using var db = new StudentManagementContext();
+        using var db = createDb();
 
         // Lấy tài khoản từ phiên, không nhận UserID từ form.
         var user = await Accounts(db).SingleOrDefaultAsync(
@@ -255,7 +262,7 @@ public sealed class AuthenticationService
                 "Yêu cầu đã hết hạn. Đóng cửa sổ và đăng nhập lại.");
         }
 
-        using var db = new StudentManagementContext();
+        using var db = createDb();
 
         var user = await Accounts(db).SingleOrDefaultAsync(
             account => account.UserId == id);

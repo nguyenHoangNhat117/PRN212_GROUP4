@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Windows;
 using PRN212_GROUP4.Models;
@@ -34,6 +34,11 @@ namespace PRN212_GROUP4.Views
             object? sender,
             EventArgs e)
         {
+            if (viewModel.SavedWarning != null)
+            {
+                MessageBox.Show(this, viewModel.SavedWarning, "Cảnh báo",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             DialogResult = true;
         }
 

@@ -1,4 +1,4 @@
-﻿/* STUDENT MANAGEMENT SYSTEM - PRN212 GROUP 4
+/* STUDENT MANAGEMENT SYSTEM - PRN212 GROUP 4
    COMPLETE FRESH INSTALL, SQL Server 2019+ / SSMS.
    Open this ONE file and run ALL with F5 in normal SSMS mode. No SQLCMD required.
    This script creates a NEW database. An existing database is never overwritten.
@@ -7,10 +7,10 @@
    If setup fails after CREATE DATABASE, the empty database is retained for diagnosis.
 
    WORKFLOW / MODULE CONTRACT:
-   F08 (Bao): uspRegisterCourse -> CourseEnrollments (no class required).
-   F09 (Bao): vCourseEnrollmentStatus, including registrations not yet assigned.
-   F10 (Loc): uspAssignStudentToClass -> Enrollments (class assignments).
-   F11-F13 (Nhan): Grades.EnrollmentID still references Enrollments.EnrollmentID.
+   F08 (Nhat): uspRegisterCourse -> CourseEnrollments (no class required).
+   F09 (Nhat): vCourseEnrollmentStatus, including registrations not yet assigned.
+   F10 (Thuong): uspAssignStudentToClass -> Enrollments (class assignments).
+   F11-F13 (Luc): Grades.EnrollmentID still references Enrollments.EnrollmentID.
    F16 (Nhat): reports may join the new registration view.
    Legacy uspEnrollStudent returns an error directing callers to the two new APIs.
    App code must enforce function permissions and own/assigned record scope.
@@ -32,6 +32,8 @@
    transaction. Drop the assignment before marking its registration DROPPED.
    Test environment has no SQL Server; static review only, not an execution guarantee.
 */
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 DECLARE @DatabaseName sysname=N'PRN212_StudentManagement_G4';
@@ -43,6 +45,8 @@ END;
 DECLARE @CreateSql nvarchar(max)=N'CREATE DATABASE '+QUOTENAME(@DatabaseName)+N';';
 EXEC sys.sp_executesql @CreateSql;
 DECLARE @SetupSql nvarchar(max)=N'USE '+QUOTENAME(@DatabaseName)+N';
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 BEGIN TRY
@@ -203,6 +207,7 @@ CREATE TABLE dbo.StudentRecords (
  RecordID int IDENTITY(1,1) PRIMARY KEY,
  StudentID int NOT NULL REFERENCES dbo.Students(StudentID),
  RecordType nvarchar(60) NOT NULL,
+ DocumentNumber nvarchar(80) NULL,
  RecordTitle nvarchar(180) NOT NULL,
  RecordContent nvarchar(max) NULL,
  RecordDate date NOT NULL DEFAULT CONVERT(date,GETDATE()),
@@ -223,6 +228,7 @@ CREATE INDEX IX_Enrollments_Student ON dbo.Enrollments(StudentID);
 CREATE INDEX IX_Enrollments_Class ON dbo.Enrollments(ClassID);
 CREATE INDEX IX_Classes_Course_Semester ON dbo.Classes(CourseID,SemesterID);
 CREATE INDEX IX_Grades_Published ON dbo.Grades(IsPublished);
+CREATE INDEX IX_Records_BusinessKey ON dbo.StudentRecords(StudentID,RecordType,DocumentNumber);
 CREATE INDEX IX_Records_Student ON dbo.StudentRecords(StudentID,IsArchived);
 CREATE INDEX IX_AuditLogs_Time ON dbo.AuditLogs(HappenedAt DESC);
 
