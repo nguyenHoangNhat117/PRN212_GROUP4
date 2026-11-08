@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models.Entities;
 
 namespace PRN212_GROUP4.Services;
@@ -6,16 +6,19 @@ namespace PRN212_GROUP4.Services;
 public static class AppSession
 {
     public static int? UserId { get; private set; }
+    public static long Version { get; private set; }
     public static AccessContext? DisplayAccess { get; private set; }
 
     internal static void SignIn(int id, AccessContext access)
     {
+        Version++;
         UserId = id;
         DisplayAccess = access;
     }
 
     public static void Clear()
     {
+        Version++;
         UserId = null;
         DisplayAccess = null;
     }
@@ -49,10 +52,10 @@ public static class AccessService
     public static readonly IReadOnlyDictionary<string, string[]> Baseline =
         new Dictionary<string, string[]>
         {
-            ["STUDENT"] = new[] { "F03", "F08", "F09" },
+            ["STUDENT"] = new[] { "F03", "F08", "F09", "F14" },
             ["LECTURER"] = new[] { "F09", "F16" },
             ["ACADEMIC_STAFF"] =
-                new[] { "F03", "F05", "F08", "F09", "F16" }
+                new[] { "F03", "F05", "F08", "F09", "F14", "F16" }
         };
 
     internal static async Task<AccessContext> LoadAsync(
@@ -134,7 +137,12 @@ public static class AccessService
             throw new UnauthorizedAccessException("Vui lòng đăng nhập.");
         }
 
+        long version = AppSession.Version;
         var access = await LoadAsync(db, id);
+        if (AppSession.Version != version || AppSession.UserId != id)
+        {
+            throw new UnauthorizedAccessException("Phiên đã thay đổi. Vui lòng đăng nhập lại.");
+        }
 
         if (!access.Can(function))
         {
@@ -158,7 +166,7 @@ public static class AccessService
         AccessContext access,
         string function)
     {
-        bool allowOwn = function is "F03" or "F08" or "F09";
+        bool allowOwn = function is "F03" or "F08" or "F09" or "F14";
         bool allowLecturer = function is "F09" or "F16";
 
         bool staffAllowed = access.CanStaff(function);

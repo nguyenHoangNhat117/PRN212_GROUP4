@@ -9,3 +9,4 @@
 *.mdf
 *.ldf
 **/appsettings.json
+**/TestResults/

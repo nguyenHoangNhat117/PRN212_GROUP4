@@ -1,4 +1,4 @@
-﻿<Window x:Class="PRN212_GROUP4.Views.LoginWindow"
+<Window x:Class="PRN212_GROUP4.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Đăng nhập · Student Management"
@@ -265,12 +265,18 @@
                          Margin="0,0,0,20"
                          MinHeight="46"/>
 
+                <TextBlock x:Name="UsernameError" Foreground="#B91C1C"
+                           TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+
                 <TextBlock Text="Mật khẩu"
                            Style="{StaticResource Label}"/>
 
                 <PasswordBox x:Name="Password"
                              Margin="0,0,0,26"
                              MinHeight="46"/>
+
+                <TextBlock x:Name="PasswordError" Foreground="#B91C1C"
+                           TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
 
                 <Button x:Name="LoginButton"
                         Content="Đăng nhập   →"

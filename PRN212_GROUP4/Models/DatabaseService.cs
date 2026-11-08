@@ -1,4 +1,4 @@
-﻿using PRN212_GROUP4.Services;
+using PRN212_GROUP4.Services;
 using PRN212_GROUP4.Models.Entities;
 
 namespace PRN212_GROUP4.Models;
@@ -37,10 +37,10 @@ public class DatabaseService
         bool includeArchived = false) =>
         records.GetAsync(studentID, includeArchived);
 
-    public Task<int> AddStudentRecordAsync(StudentRecord record) =>
+    public Task<RecordSaveResult> AddStudentRecordAsync(StudentRecord record) =>
         records.AddAsync(record);
 
-    public Task UpdateStudentRecordAsync(
+    public Task<RecordSaveResult> UpdateStudentRecordAsync(
         StudentRecord edited,
         StudentRecord original) =>
         records.UpdateAsync(edited, original);

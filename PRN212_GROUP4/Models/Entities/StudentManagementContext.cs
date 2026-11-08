@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -479,6 +479,9 @@ public partial class StudentManagementContext : DbContext
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.CreatedByUserId).HasColumnName("CreatedByUserID");
             entity.Property(e => e.RecordDate).HasDefaultValueSql("(CONVERT([date],getdate()))");
+            entity.Property(e => e.DocumentNumber).HasMaxLength(80);
+            entity.HasIndex(e => new { e.StudentId, e.RecordType, e.DocumentNumber },
+                "IX_Records_BusinessKey");
             entity.Property(e => e.RecordTitle).HasMaxLength(180);
             entity.Property(e => e.RecordType).HasMaxLength(60);
             entity.Property(e => e.StudentId).HasColumnName("StudentID");

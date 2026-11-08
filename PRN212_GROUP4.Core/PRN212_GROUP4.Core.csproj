@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../PRN212_GROUP4/Models/**/*.cs" Exclude="../PRN212_GROUP4/Models/**/obj/**;../PRN212_GROUP4/Models/**/bin/**" LinkBase="Models" />
+    <Compile Include="../PRN212_GROUP4/Services/AccessService.cs;../PRN212_GROUP4/Services/AuthenticationService.cs;../PRN212_GROUP4/Services/CourseEnrollmentService.cs;../PRN212_GROUP4/Services/StudentProfileService.cs;../PRN212_GROUP4/Services/StudentRecordService.cs;../PRN212_GROUP4/Services/StudentValidation.cs;../PRN212_GROUP4/Services/StudentMapping.cs;../PRN212_GROUP4/Services/AcademicReportService.cs;../PRN212_GROUP4/Services/LoginValidation.cs;../PRN212_GROUP4/Services/AcademicCsvFormatter.cs;../PRN212_GROUP4/Services/AcademicSummaryService.cs" LinkBase="Services" />
+    <Compile Include="../PRN212_GROUP4/Helpers/CsvText.cs" Link="Helpers/CsvText.cs" />
+    <InternalsVisibleTo Include="PRN212_GROUP4.Tests" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.33" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+  </ItemGroup>
+</Project>

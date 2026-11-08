@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
@@ -23,6 +23,8 @@ namespace PRN212_GROUP4.ViewModels
         public AsyncRelayCommand SaveCommand { get; }
 
         public event EventHandler? SaveSucceeded;
+
+        public string? SavedWarning { get; private set; }
 
         public DateTime? RecordDate
         {
@@ -116,9 +118,9 @@ namespace PRN212_GROUP4.ViewModels
                 EditedRecord.RecordDate = RecordDate.Value.Date;
 
                 // Giữ nguyên kiểm tra dữ liệu gốc trong DatabaseService.
-                await databaseService.UpdateStudentRecordAsync(
-                    EditedRecord,
-                    originalRecord);
+                var result = await databaseService.UpdateStudentRecordAsync(
+                    EditedRecord, originalRecord);
+                SavedWarning = result.Warning;
 
                 isSaved = true;
 
@@ -147,6 +149,7 @@ namespace PRN212_GROUP4.ViewModels
                 RecordID = source.RecordID,
                 StudentID = source.StudentID,
                 RecordType = source.RecordType,
+                DocumentNumber = source.DocumentNumber,
                 RecordTitle = source.RecordTitle,
                 RecordContent = source.RecordContent,
                 RecordDate = source.RecordDate,

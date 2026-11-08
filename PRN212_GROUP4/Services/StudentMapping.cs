@@ -1,4 +1,4 @@
-﻿using E = PRN212_GROUP4.Models.Entities;
+using E = PRN212_GROUP4.Models.Entities;
 using D = PRN212_GROUP4.Models;
 
 namespace PRN212_GROUP4.Services;
@@ -29,6 +29,7 @@ internal static class StudentMapping
         RecordID = record.RecordId,
         StudentID = record.StudentId,
         RecordType = record.RecordType,
+        DocumentNumber = record.DocumentNumber,
         RecordTitle = record.RecordTitle,
         RecordContent = record.RecordContent,
         RecordDate = record.RecordDate.ToDateTime(TimeOnly.MinValue),

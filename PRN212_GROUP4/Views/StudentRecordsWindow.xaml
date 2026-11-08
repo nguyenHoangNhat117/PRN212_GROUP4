@@ -1,4 +1,4 @@
-﻿<Window x:Class="PRN212_GROUP4.Views.StudentRecordsWindow"
+<Window x:Class="PRN212_GROUP4.Views.StudentRecordsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Student Records"
@@ -145,6 +145,7 @@
                         VerticalScrollBarVisibility="Auto">
 
                         <DataGrid.Columns>
+                    <DataGridTextColumn Header="Mã chứng từ" Binding="{Binding DocumentNumber}" Width="120"/>
                             <DataGridTextColumn
                                 Header="DATE"
                                 Binding="{Binding RecordDate,

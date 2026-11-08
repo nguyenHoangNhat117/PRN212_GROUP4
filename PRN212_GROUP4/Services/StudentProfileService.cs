@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using E = PRN212_GROUP4.Models.Entities;
 using D = PRN212_GROUP4.Models;
@@ -7,9 +7,16 @@ namespace PRN212_GROUP4.Services;
 
 public sealed class StudentProfileService
 {
+    private readonly Func<E.StudentManagementContext> createDb;
+
+    public StudentProfileService(Func<E.StudentManagementContext>? createDb = null)
+    {
+        this.createDb = createDb ?? (() => new E.StudentManagementContext());
+    }
+
     public async Task<List<D.Student>> GetAsync()
     {
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, "F03");
 
         var entities = await AccessService.Students(db, access, "F03")
@@ -23,7 +30,7 @@ public sealed class StudentProfileService
 
     public async Task<List<D.Department>> DepartmentsAsync()
     {
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, "F03");
 
         return await db.Departments
@@ -45,7 +52,7 @@ public sealed class StudentProfileService
     {
         StudentValidation.ValidateStudent(student, true);
 
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -103,7 +110,7 @@ public sealed class StudentProfileService
     {
         StudentValidation.ValidateStudent(student, false);
 
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 

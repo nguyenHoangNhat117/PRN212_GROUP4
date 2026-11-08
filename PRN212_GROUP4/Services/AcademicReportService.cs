@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models;
 using PRN212_GROUP4.Models.Entities;
 
@@ -62,10 +63,13 @@ public sealed class SqlViewGpaProvider : IAcademicGpaProvider
 public sealed class AcademicReportService
 {
     private readonly IAcademicGpaProvider gpa;
+    private readonly Func<StudentManagementContext> createDb;
 
-    public AcademicReportService(IAcademicGpaProvider? gpa = null)
+    public AcademicReportService(IAcademicGpaProvider? gpa = null,
+        Func<StudentManagementContext>? createDb = null)
     {
         this.gpa = gpa ?? new SqlViewGpaProvider();
+        this.createDb = createDb ?? (() => new StudentManagementContext());
     }
 
     public async Task<List<AcademicReportRow>> GenerateAsync(
@@ -77,7 +81,8 @@ public sealed class AcademicReportService
             throw new ArgumentException("Loại báo cáo không hợp lệ.");
         }
 
-        using var db = new StudentManagementContext();
+        using var db = createDb();
+        using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         var access = await AccessService.RequireAsync(db, "F16");
 
@@ -107,7 +112,7 @@ public sealed class AcademicReportService
                         registration.StudentId == student.StudentId));
             }
 
-            return await students
+            var result = await students
                 .OrderBy(student => student.StudentCode)
                 .Select(student => new AcademicReportRow
                 {
@@ -119,12 +124,14 @@ public sealed class AcademicReportService
                     Status = student.StudentStatus
                 })
                 .ToListAsync();
+            await transaction.CommitAsync();
+            return result;
         }
 
         // Báo cáo danh sách lớp.
         if (criteria.Type == "Lớp")
         {
-            return await (
+            var result = await (
                 from registration in registrations
                     .Where(item => item.ClassId != null)
                 join student in students
@@ -141,6 +148,8 @@ public sealed class AcademicReportService
                         ?? registration.RegistrationStatus
                 })
                 .ToListAsync();
+            await transaction.CommitAsync();
+            return result;
         }
 
         // Báo cáo kết quả học tập.
@@ -173,6 +182,7 @@ public sealed class AcademicReportService
             rows,
             gpaStudents.ToHashSet());
 
+        await transaction.CommitAsync();
         return rows.Select(item => item.Row).ToList();
     }
 

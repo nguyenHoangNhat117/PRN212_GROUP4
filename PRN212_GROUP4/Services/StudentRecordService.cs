@@ -1,17 +1,26 @@
-﻿using System.Data;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using E = PRN212_GROUP4.Models.Entities;
 using D = PRN212_GROUP4.Models;
 
 namespace PRN212_GROUP4.Services;
 
+public sealed record RecordSaveResult(int RecordId, string? Warning);
+
 public sealed class StudentRecordService
 {
+    private readonly Func<E.StudentManagementContext> createDb;
+
+    public StudentRecordService(Func<E.StudentManagementContext>? createDb = null)
+    {
+        this.createDb = createDb ?? (() => new E.StudentManagementContext());
+    }
+
     public async Task<List<D.StudentRecord>> GetAsync(
         int studentId,
         bool archived)
     {
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         var access = await AccessService.RequireAsync(db, "F05");
 
         await AccessService.EnsureStudentAsync(
@@ -29,11 +38,11 @@ public sealed class StudentRecordService
         return entities.Select(StudentMapping.ToDto).ToList();
     }
 
-    public async Task<int> AddAsync(D.StudentRecord record)
+    public async Task<RecordSaveResult> AddAsync(D.StudentRecord record)
     {
         StudentValidation.ValidateStudentRecord(record);
 
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -42,10 +51,13 @@ public sealed class StudentRecordService
         await AccessService.EnsureStudentAsync(
             db, access, record.StudentID, "F05");
 
+        string? warning = await DuplicateWarningAsync(db, record);
+
         var entity = new E.StudentRecord
         {
             StudentId = record.StudentID,
             RecordType = record.RecordType,
+            DocumentNumber = record.DocumentNumber,
             RecordTitle = record.RecordTitle,
             RecordContent = record.RecordContent,
             RecordDate = DateOnly.FromDateTime(record.RecordDate),
@@ -58,10 +70,10 @@ public sealed class StudentRecordService
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return entity.RecordId;
+        return new RecordSaveResult(entity.RecordId, warning);
     }
 
-    public async Task UpdateAsync(
+    public async Task<RecordSaveResult> UpdateAsync(
         D.StudentRecord edited,
         D.StudentRecord original)
     {
@@ -75,7 +87,7 @@ public sealed class StudentRecordService
 
         StudentValidation.ValidateStudentRecord(edited);
 
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -83,6 +95,8 @@ public sealed class StudentRecordService
 
         await AccessService.EnsureStudentAsync(
             db, access, original.StudentID, "F05");
+
+        string? warning = await DuplicateWarningAsync(db, edited);
 
         var originalDate = DateOnly.FromDateTime(original.RecordDate);
         var newDate = DateOnly.FromDateTime(edited.RecordDate);
@@ -92,12 +106,14 @@ public sealed class StudentRecordService
                 record.RecordId == original.RecordID
                 && record.StudentId == original.StudentID
                 && !record.IsArchived
+                && record.DocumentNumber == original.DocumentNumber
                 && record.RecordTitle == original.RecordTitle
                 && record.RecordType == original.RecordType
                 && record.RecordContent == original.RecordContent
                 && record.RecordDate == originalDate)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(record => record.RecordType, edited.RecordType)
+                .SetProperty(record => record.DocumentNumber, edited.DocumentNumber)
                 .SetProperty(record => record.RecordTitle, edited.RecordTitle)
                 .SetProperty(record => record.RecordContent, edited.RecordContent)
                 .SetProperty(record => record.RecordDate, newDate));
@@ -109,11 +125,28 @@ public sealed class StudentRecordService
         }
 
         await transaction.CommitAsync();
+        return new RecordSaveResult(edited.RecordID, warning);
+    }
+
+    // Include archived rows: duplicate warnings must also account for history.
+    // Update/range locks serialize the warning check with concurrent inserts.
+    private static async Task<string?> DuplicateWarningAsync(
+        E.StudentManagementContext db, D.StudentRecord record)
+    {
+        bool duplicate = await db.StudentRecords.FromSqlInterpolated($@"
+            SELECT * FROM dbo.StudentRecords WITH (UPDLOCK, HOLDLOCK)
+            WHERE StudentID = {record.StudentID}
+              AND RecordType = {record.RecordType}
+              AND DocumentNumber = {record.DocumentNumber}
+              AND RecordID <> {record.RecordID}").AnyAsync();
+        return duplicate
+            ? "Cảnh báo: đã có hồ sơ cùng sinh viên, loại hồ sơ và mã chứng từ. Hồ sơ vẫn được lưu; hãy kiểm tra tính hợp lệ."
+            : null;
     }
 
     public async Task ArchiveAsync(int studentId, int recordId)
     {
-        using var db = new E.StudentManagementContext();
+        using var db = createDb();
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
