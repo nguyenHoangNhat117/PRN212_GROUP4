@@ -9,5 +9,10 @@
   <None Include="../Database/StudentManagement_G4.sql" Link="Database/StudentManagement_G4.sql" CopyToOutputDirectory="PreserveNewest" />
   <None Include="../Database/Migrations/001_RecordDocumentNumber.sql" Link="Database/001_RecordDocumentNumber.sql" CopyToOutputDirectory="PreserveNewest" />
   <None Include="../Database/Migrations/002_RuntimeHardening.sql" Link="Database/002_RuntimeHardening.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Seeds/FullProject_Demo.sql" Link="Database/FullProject_Demo.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Install_FullProject_Demo.sql" Link="Database/Install_FullProject_Demo.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Install_Production.sql" Link="Database/Install_Production.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Operations/Check_Readiness.sql" Link="Database/Check_Readiness.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Operations/Provision_RuntimeRole.sql" Link="Database/Provision_RuntimeRole.sql" CopyToOutputDirectory="PreserveNewest" />
  </ItemGroup>
 </Project>

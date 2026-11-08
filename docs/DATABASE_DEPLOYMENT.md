@@ -2,6 +2,10 @@
 
 SQL Server 2019+; .NET 8; ứng dụng WPF chạy trên Windows. Script không tự kết nối database đang vận hành. Hãy xác nhận đúng instance/database trước mỗi lệnh. Mọi thay đổi phải được thử trên bản restore của dữ liệu thật trước.
 
+## Chọn bộ cài toàn dự án
+
+Xem `docs/FULL_PROJECT_DATA.md`: `Install_FullProject_Demo.sql` cho demo đủ tình huống; `Install_Production.sql` cho database mới không có dữ liệu kinh doanh mẫu. `StudentManagement_G4.sql` là bộ mẫu tối thiểu phục vụ regression.
+
 ## Database mới
 
 1. Mở `Database/StudentManagement_G4.sql` bằng SSMS. Chọn tên database mới tại `@DatabaseName`, chạy toàn bộ file. Script từ chối ghi đè database có sẵn. File đã bao gồm migration 002.
