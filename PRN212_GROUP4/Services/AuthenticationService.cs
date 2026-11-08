@@ -307,6 +307,10 @@ public sealed class AuthenticationService
     {
         try
         {
+            await db.Database.OpenConnectionAsync();
+            int actorId = db.ChangeTracker.Entries<User>().Single().Entity.UserId;
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"EXEC sys.sp_set_session_context @key=N'ActorUserID', @value={actorId}");
             await db.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)

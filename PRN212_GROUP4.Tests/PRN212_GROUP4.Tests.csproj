@@ -8,5 +8,6 @@
   <Using Include="Xunit" />
   <None Include="../Database/StudentManagement_G4.sql" Link="Database/StudentManagement_G4.sql" CopyToOutputDirectory="PreserveNewest" />
   <None Include="../Database/Migrations/001_RecordDocumentNumber.sql" Link="Database/001_RecordDocumentNumber.sql" CopyToOutputDirectory="PreserveNewest" />
+  <None Include="../Database/Migrations/002_RuntimeHardening.sql" Link="Database/002_RuntimeHardening.sql" CopyToOutputDirectory="PreserveNewest" />
  </ItemGroup>
 </Project>

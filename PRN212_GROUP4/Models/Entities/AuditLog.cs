@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace PRN212_GROUP4.Models.Entities;
@@ -16,6 +16,8 @@ public partial class AuditLog
     public string? EntityKey { get; set; }
 
     public string? Details { get; set; }
+
+    public string? ChangeData { get; set; }
 
     public DateTime HappenedAt { get; set; }
 

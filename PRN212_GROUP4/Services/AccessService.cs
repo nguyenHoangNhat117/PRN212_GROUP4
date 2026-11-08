@@ -150,6 +150,11 @@ public static class AccessService
                 "Bạn không có quyền " + function + ".");
         }
 
+        // Keep this connection open until DbContext disposal so the audit context
+        // belongs to the same connection as subsequent writes.
+        await db.Database.OpenConnectionAsync();
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"EXEC sys.sp_set_session_context @key=N'ActorUserID', @value={id}");
         return access;
     }
 

@@ -646,6 +646,13 @@ public partial class StudentManagementContext : DbContext
             entity.Property(e => e.StudentId).HasColumnName("StudentID");
         });
 
+        // SQL Server tables with audit/validation triggers cannot use OUTPUT without INTO.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (entityType.GetViewName() == null)
+                entityType.SetAnnotation("SqlServer:UseSqlOutputClause", false);
+        }
+
         OnModelCreatingPartial(modelBuilder);
     }
 
