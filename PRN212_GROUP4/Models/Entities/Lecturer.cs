@@ -17,6 +17,24 @@ public partial class Lecturer
 
     public bool IsActive { get; set; }
 
+    public DateOnly? DateOfBirth { get; set; }
+
+    public string? Gender { get; set; }
+
+    public string? Email { get; set; }
+
+    public string? Phone { get; set; }
+
+    public string? Address { get; set; }
+
+    public string? Qualification { get; set; }
+
+    public string? Specialization { get; set; }
+
+    public DateOnly? HireDate { get; set; }
+
+    public byte[] RowVer { get; set; } = null!;
+
     public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 
     public virtual Department? Department { get; set; }

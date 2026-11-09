@@ -31,6 +31,18 @@ public partial class User
 
     public byte[] RowVer { get; set; } = null!;
 
+    public string? FullName { get; set; }
+
+    public DateOnly? DateOfBirth { get; set; }
+
+    public string? Gender { get; set; }
+
+    public string? Phone { get; set; }
+
+    public string? Address { get; set; }
+
+    public string? AvatarUrl { get; set; }
+
     public virtual AcademicStaff? AcademicStaff { get; set; }
 
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();

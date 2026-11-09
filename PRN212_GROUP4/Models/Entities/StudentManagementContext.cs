@@ -1,16 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace PRN212_GROUP4.Models.Entities;
 
 public partial class StudentManagementContext : DbContext
 {
-    public StudentManagementContext()
-    {
-    }
-
     public StudentManagementContext(DbContextOptions<StudentManagementContext> options)
         : base(options)
     {
@@ -36,6 +31,8 @@ public partial class StudentManagementContext : DbContext
 
     public virtual DbSet<Lecturer> Lecturers { get; set; }
 
+    public virtual DbSet<Major> Majors { get; set; }
+
     public virtual DbSet<Permission> Permissions { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
@@ -56,45 +53,34 @@ public partial class StudentManagementContext : DbContext
 
     public virtual DbSet<VStudentSemesterGpa> VStudentSemesterGpas { get; set; }
 
-    protected override void OnConfiguring(
-    DbContextOptionsBuilder optionsBuilder)
-    {
-        if (optionsBuilder.IsConfigured)
-        {
-            return;
-        }
-
-        IConfiguration configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false)
-            .Build();
-
-        string connectionString =
-            configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "Chưa cấu hình chuỗi kết nối DefaultConnection.");
-
-        optionsBuilder.UseSqlServer(connectionString);
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AcademicStaff>(entity =>
         {
-            entity.HasKey(e => e.StaffId).HasName("PK__Academic__96D4AAF780881CC4");
+            entity.HasKey(e => e.StaffId).HasName("PK__Academic__96D4AAF7031D3266");
 
             entity.ToTable("AcademicStaff");
 
-            entity.HasIndex(e => e.StaffCode, "UQ__Academic__D83AD8120D06D6A3").IsUnique();
+            entity.HasIndex(e => e.StaffCode, "UQ__Academic__D83AD812C7D07E87").IsUnique();
 
             entity.HasIndex(e => e.UserId, "UX_AcademicStaff_UserID_NotNull")
                 .IsUnique()
                 .HasFilter("([UserID] IS NOT NULL)");
 
             entity.Property(e => e.StaffId).HasColumnName("StaffID");
+            entity.Property(e => e.Address).HasMaxLength(250);
             entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
+            entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(120);
+            entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.Phone)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.Position).HasMaxLength(80);
+            entity.Property(e => e.RowVer)
+                .IsRowVersion()
+                .IsConcurrencyToken();
             entity.Property(e => e.StaffCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
@@ -111,7 +97,7 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<AuditLog>(entity =>
         {
-            entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B857034839");
+            entity.HasKey(e => e.AuditId).HasName("PK__AuditLog__A17F23B8DEBB0DD8");
 
             entity.HasIndex(e => e.HappenedAt, "IX_AuditLogs_Time").IsDescending();
 
@@ -136,13 +122,15 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Class>(entity =>
         {
-            entity.HasKey(e => e.ClassId).HasName("PK__Classes__CB1927A0AF0C8730");
+            entity.HasKey(e => e.ClassId).HasName("PK__Classes__CB1927A08AE9E061");
 
             entity.ToTable(tb => tb.HasTrigger("trg_Classes_ProtectRegistrations"));
 
             entity.HasIndex(e => new { e.CourseId, e.SemesterId }, "IX_Classes_Course_Semester");
 
-            entity.HasIndex(e => e.ClassCode, "UQ__Classes__2ECD4A55DB5EC1EF").IsUnique();
+            entity.HasIndex(e => new { e.LecturerId, e.SemesterId }, "IX_Classes_Lecturer");
+
+            entity.HasIndex(e => e.ClassCode, "UQ__Classes__2ECD4A55F643E87B").IsUnique();
 
             entity.Property(e => e.ClassId).HasColumnName("ClassID");
             entity.Property(e => e.ClassCode)
@@ -174,9 +162,9 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Course>(entity =>
         {
-            entity.HasKey(e => e.CourseId).HasName("PK__Courses__C92D7187176DB146");
+            entity.HasKey(e => e.CourseId).HasName("PK__Courses__C92D7187F3B103EE");
 
-            entity.HasIndex(e => e.CourseCode, "UQ__Courses__FC00E000D1FB0FCE").IsUnique();
+            entity.HasIndex(e => e.CourseCode, "UQ__Courses__FC00E000ADFFA7D9").IsUnique();
 
             entity.Property(e => e.CourseId).HasColumnName("CourseID");
             entity.Property(e => e.CourseCode)
@@ -232,9 +220,9 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Department>(entity =>
         {
-            entity.HasKey(e => e.DepartmentId).HasName("PK__Departme__B2079BCD21382C5F");
+            entity.HasKey(e => e.DepartmentId).HasName("PK__Departme__B2079BCD99E27711");
 
-            entity.HasIndex(e => e.DepartmentCode, "UQ__Departme__6EA8896DC121CBBC").IsUnique();
+            entity.HasIndex(e => e.DepartmentCode, "UQ__Departme__6EA8896DC4D1741F").IsUnique();
 
             entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
             entity.Property(e => e.DepartmentCode)
@@ -246,9 +234,13 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Enrollment>(entity =>
         {
-            entity.HasKey(e => e.EnrollmentId).HasName("PK__Enrollme__7F6877FB13A86647");
+            entity.HasKey(e => e.EnrollmentId).HasName("PK__Enrollme__7F6877FB237C1F28");
 
-            entity.ToTable(tb => tb.HasTrigger("trg_Enrollments_RegistrationMatch"));
+            entity.ToTable(tb =>
+                {
+                    tb.HasTrigger("trg_Enrollments_RegistrationMatch");
+                    tb.HasTrigger("trg_Enrollments_Workflow");
+                });
 
             entity.HasIndex(e => e.ClassId, "IX_Enrollments_Class");
 
@@ -280,9 +272,8 @@ public partial class StudentManagementContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Enrollmen__Class__160F4887");
 
-            entity.HasOne(d => d.CourseEnrollment)
-                .WithMany(p => p.Enrollments)
-                .HasForeignKey(d => d.CourseEnrollmentId)
+            entity.HasOne(d => d.CourseEnrollment).WithOne(p => p.Enrollment)
+                .HasForeignKey<Enrollment>(d => d.CourseEnrollmentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Enrollmen__Cours__14270015");
 
@@ -294,11 +285,13 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Grade>(entity =>
         {
-            entity.HasKey(e => e.GradeId).HasName("PK__Grades__54F87A37F191AA78");
+            entity.HasKey(e => e.GradeId).HasName("PK__Grades__54F87A37E9B55DF2");
+
+            entity.ToTable(tb => tb.HasTrigger("trg_Grades_Protect"));
 
             entity.HasIndex(e => e.IsPublished, "IX_Grades_Published");
 
-            entity.HasIndex(e => e.EnrollmentId, "UQ__Grades__7F6877FAA640D958").IsUnique();
+            entity.HasIndex(e => e.EnrollmentId, "UQ__Grades__7F6877FAE7CFCA26").IsUnique();
 
             entity.Property(e => e.GradeId).HasColumnName("GradeID");
             entity.Property(e => e.EnrollmentId).HasColumnName("EnrollmentID");
@@ -323,9 +316,9 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<GradeScale>(entity =>
         {
-            entity.HasKey(e => e.GradeScaleId).HasName("PK__GradeSca__B5AD3A47E517ACC8");
+            entity.HasKey(e => e.GradeScaleId).HasName("PK__GradeSca__B5AD3A4760D69327");
 
-            entity.ToTable("GradeScale");
+            entity.ToTable("GradeScale", tb => tb.HasTrigger("trg_GradeScale_Validate"));
 
             entity.Property(e => e.GradeScaleId).HasColumnName("GradeScaleID");
             entity.Property(e => e.GradeLetter)
@@ -339,21 +332,32 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Lecturer>(entity =>
         {
-            entity.HasKey(e => e.LecturerId).HasName("PK__Lecturer__5A78B91DBB0F8C65");
+            entity.HasKey(e => e.LecturerId).HasName("PK__Lecturer__5A78B91D8C37E707");
 
-            entity.HasIndex(e => e.LecturerCode, "UQ__Lecturer__BB9CDAB30BC0C58E").IsUnique();
+            entity.HasIndex(e => e.LecturerCode, "UQ__Lecturer__BB9CDAB365C66F87").IsUnique();
 
             entity.HasIndex(e => e.UserId, "UX_Lecturers_UserID_NotNull")
                 .IsUnique()
                 .HasFilter("([UserID] IS NOT NULL)");
 
             entity.Property(e => e.LecturerId).HasColumnName("LecturerID");
+            entity.Property(e => e.Address).HasMaxLength(250);
             entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
+            entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(120);
+            entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LecturerCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.Phone)
+                .HasMaxLength(30)
+                .IsUnicode(false);
+            entity.Property(e => e.Qualification).HasMaxLength(80);
+            entity.Property(e => e.RowVer)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+            entity.Property(e => e.Specialization).HasMaxLength(120);
             entity.Property(e => e.UserId).HasColumnName("UserID");
 
             entity.HasOne(d => d.Department).WithMany(p => p.Lecturers)
@@ -365,11 +369,33 @@ public partial class StudentManagementContext : DbContext
                 .HasConstraintName("FK__Lecturers__UserI__6E01572D");
         });
 
+        modelBuilder.Entity<Major>(entity =>
+        {
+            entity.HasKey(e => e.MajorId).HasName("PK__Majors__D5B8BFB1252241BD");
+
+            entity.HasIndex(e => new { e.MajorId, e.DepartmentId }, "UQ_Majors_Department").IsUnique();
+
+            entity.HasIndex(e => e.MajorCode, "UQ__Majors__64E58F940D4ACA41").IsUnique();
+
+            entity.Property(e => e.MajorId).HasColumnName("MajorID");
+            entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.MajorCode)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.MajorName).HasMaxLength(120);
+
+            entity.HasOne(d => d.Department).WithMany(p => p.Majors)
+                .HasForeignKey(d => d.DepartmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Majors__Departme__3493CFA7");
+        });
+
         modelBuilder.Entity<Permission>(entity =>
         {
-            entity.HasKey(e => e.PermissionId).HasName("PK__Permissi__EFA6FB0F3B34DAA8");
+            entity.HasKey(e => e.PermissionId).HasName("PK__Permissi__EFA6FB0F3F70AFBD");
 
-            entity.HasIndex(e => e.FunctionCode, "UQ__Permissi__E037746C4E601DBE").IsUnique();
+            entity.HasIndex(e => e.FunctionCode, "UQ__Permissi__E037746C7D1DFEE9").IsUnique();
 
             entity.Property(e => e.PermissionId).HasColumnName("PermissionID");
             entity.Property(e => e.FunctionCode)
@@ -381,9 +407,9 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3AA88CDA12");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A48DA6A4B");
 
-            entity.HasIndex(e => e.RoleCode, "UQ__Roles__D62CB59C45987640").IsUnique();
+            entity.HasIndex(e => e.RoleCode, "UQ__Roles__D62CB59C73CDB842").IsUnique();
 
             entity.Property(e => e.RoleId).HasColumnName("RoleID");
             entity.Property(e => e.RoleCode)
@@ -413,9 +439,9 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Semester>(entity =>
         {
-            entity.HasKey(e => e.SemesterId).HasName("PK__Semester__043301BD8554D983");
+            entity.HasKey(e => e.SemesterId).HasName("PK__Semester__043301BDD244DE0C");
 
-            entity.HasIndex(e => e.SemesterCode, "UQ__Semester__513151C99FDB766B").IsUnique();
+            entity.HasIndex(e => e.SemesterCode, "UQ__Semester__513151C9DF652B5A").IsUnique();
 
             entity.Property(e => e.SemesterId).HasColumnName("SemesterID");
             entity.Property(e => e.SemesterCode)
@@ -426,22 +452,35 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<Student>(entity =>
         {
-            entity.ToTable("Students", tb => tb.UseSqlOutputClause(false));
-            entity.HasKey(e => e.StudentId).HasName("PK__Students__32C52A79C94409F3");
+            entity.HasKey(e => e.StudentId).HasName("PK__Students__32C52A7955F2E614");
 
-            entity.HasIndex(e => e.StudentCode, "UQ__Students__1FC88604B9CD4BC7").IsUnique();
+            entity.ToTable(tb => tb.HasTrigger("trg_Students_Audit"));
+
+            entity.HasIndex(e => new { e.DepartmentId, e.StudentCode }, "IX_Students_Department");
+
+            entity.HasIndex(e => e.StudentCode, "UQ__Students__1FC886049D0DE6C6").IsUnique();
 
             entity.HasIndex(e => e.UserId, "UX_Students_UserID_NotNull")
                 .IsUnique()
                 .HasFilter("([UserID] IS NOT NULL)");
 
             entity.Property(e => e.StudentId).HasColumnName("StudentID");
+            entity.Property(e => e.Address).HasMaxLength(250);
+            entity.Property(e => e.Cohort)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.DepartmentId).HasColumnName("DepartmentID");
             entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.EmergencyContactName).HasMaxLength(120);
+            entity.Property(e => e.EmergencyContactPhone)
+                .HasMaxLength(30)
+                .IsUnicode(false);
             entity.Property(e => e.FullName).HasMaxLength(120);
+            entity.Property(e => e.Gender).HasMaxLength(10);
+            entity.Property(e => e.MajorId).HasColumnName("MajorID");
             entity.Property(e => e.Phone)
                 .HasMaxLength(30)
                 .IsUnicode(false);
@@ -464,12 +503,20 @@ public partial class StudentManagementContext : DbContext
             entity.HasOne(d => d.User).WithOne(p => p.Student)
                 .HasForeignKey<Student>(d => d.UserId)
                 .HasConstraintName("FK__Students__UserID__66603565");
+
+            entity.HasOne(d => d.Major).WithMany(p => p.Students)
+                .HasPrincipalKey(p => new { p.MajorId, p.DepartmentId })
+                .HasForeignKey(d => new { d.MajorId, d.DepartmentId })
+                .HasConstraintName("FK_Students_Major");
         });
 
         modelBuilder.Entity<StudentRecord>(entity =>
         {
-            entity.ToTable("StudentRecords", tb => tb.UseSqlOutputClause(false));
-            entity.HasKey(e => e.RecordId).HasName("PK__StudentR__FBDF78C91F64FE1A");
+            entity.HasKey(e => e.RecordId).HasName("PK__StudentR__FBDF78C9BE780181");
+
+            entity.ToTable(tb => tb.HasTrigger("trg_StudentRecords_Audit"));
+
+            entity.HasIndex(e => new { e.StudentId, e.RecordType, e.DocumentNumber }, "IX_Records_BusinessKey");
 
             entity.HasIndex(e => new { e.StudentId, e.IsArchived }, "IX_Records_Student");
 
@@ -478,12 +525,13 @@ public partial class StudentManagementContext : DbContext
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.CreatedByUserId).HasColumnName("CreatedByUserID");
-            entity.Property(e => e.RecordDate).HasDefaultValueSql("(CONVERT([date],getdate()))");
             entity.Property(e => e.DocumentNumber).HasMaxLength(80);
-            entity.HasIndex(e => new { e.StudentId, e.RecordType, e.DocumentNumber },
-                "IX_Records_BusinessKey");
+            entity.Property(e => e.RecordDate).HasDefaultValueSql("(CONVERT([date],getdate()))");
             entity.Property(e => e.RecordTitle).HasMaxLength(180);
             entity.Property(e => e.RecordType).HasMaxLength(60);
+            entity.Property(e => e.RowVer)
+                .IsRowVersion()
+                .IsConcurrencyToken();
             entity.Property(e => e.StudentId).HasColumnName("StudentID");
 
             entity.HasOne(d => d.CreatedByUser).WithMany(p => p.StudentRecords)
@@ -498,20 +546,24 @@ public partial class StudentManagementContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCACD11FF5B2");
+            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CCAC01D26C73");
 
-            entity.HasIndex(e => e.Username, "UQ__Users__536C85E4F0EC1AA3").IsUnique();
+            entity.HasIndex(e => e.Username, "UQ__Users__536C85E4592F207D").IsUnique();
 
             entity.HasIndex(e => e.Email, "UX_Users_Email_NotNull")
                 .IsUnique()
                 .HasFilter("([Email] IS NOT NULL)");
 
             entity.Property(e => e.UserId).HasColumnName("UserID");
+            entity.Property(e => e.Address).HasMaxLength(250);
+            entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.DisplayName).HasMaxLength(120);
             entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.FullName).HasMaxLength(120);
+            entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.MustChangePassword).HasDefaultValue(true);
             entity.Property(e => e.PasswordAlgorithm)
@@ -524,6 +576,9 @@ public partial class StudentManagementContext : DbContext
             entity.Property(e => e.PasswordIterations).HasDefaultValue(210000);
             entity.Property(e => e.PasswordSalt)
                 .HasMaxLength(64)
+                .IsUnicode(false);
+            entity.Property(e => e.Phone)
+                .HasMaxLength(30)
                 .IsUnicode(false);
             entity.Property(e => e.RowVer)
                 .IsRowVersion()
@@ -598,7 +653,10 @@ public partial class StudentManagementContext : DbContext
             entity.Property(e => e.CourseCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.CourseId).HasColumnName("CourseID");
             entity.Property(e => e.CourseName).HasMaxLength(150);
+            entity.Property(e => e.EnrollmentDate).HasPrecision(0);
+            entity.Property(e => e.EnrollmentId).HasColumnName("EnrollmentID");
             entity.Property(e => e.FinalScore).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.GradeLetter)
                 .HasMaxLength(5)
@@ -607,6 +665,7 @@ public partial class StudentManagementContext : DbContext
             entity.Property(e => e.SemesterCode)
                 .HasMaxLength(30)
                 .IsUnicode(false);
+            entity.Property(e => e.SemesterId).HasColumnName("SemesterID");
             entity.Property(e => e.StudentCode)
                 .HasMaxLength(20)
                 .IsUnicode(false);

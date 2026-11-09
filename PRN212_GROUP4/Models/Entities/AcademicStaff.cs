@@ -17,6 +17,22 @@ public partial class AcademicStaff
 
     public bool IsActive { get; set; }
 
+    public DateOnly? DateOfBirth { get; set; }
+
+    public string? Gender { get; set; }
+
+    public string? Email { get; set; }
+
+    public string? Phone { get; set; }
+
+    public string? Address { get; set; }
+
+    public string? Position { get; set; }
+
+    public DateOnly? HireDate { get; set; }
+
+    public byte[] RowVer { get; set; } = null!;
+
     public virtual Department? Department { get; set; }
 
     public virtual User? User { get; set; }

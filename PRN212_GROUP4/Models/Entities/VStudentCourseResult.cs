@@ -9,6 +9,16 @@ public partial class VStudentCourseResult
 
     public string StudentCode { get; set; } = null!;
 
+    public int CourseId { get; set; }
+
+    public int SemesterId { get; set; }
+
+    public DateOnly SemesterStartDate { get; set; }
+
+    public DateTime EnrollmentDate { get; set; }
+
+    public int EnrollmentId { get; set; }
+
     public string CourseCode { get; set; } = null!;
 
     public string CourseName { get; set; } = null!;
