@@ -1,4 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 using PRN212_GROUP4.Services;
@@ -8,22 +11,30 @@ namespace PRN212_GROUP4.ViewModels;
 public class StudentRecordsViewModel : StudentRecordViewModel
 {
     private readonly IStudentRecordDialogService dialogService;
+
     private StudentRecord? selectedRecord;
     private bool includeArchived;
     private bool isBusy;
-    private string statusMessage = "Loading records...";
+
+    private string statusMessage = "Đang tải hồ sơ...";
 
     public Student Student { get; }
-    public ObservableCollection<StudentRecord> Records { get; } = new();
+
+    public ObservableCollection<StudentRecord> Records { get; }
+        = new();
 
     public AsyncRelayCommand RefreshCommand { get; }
+
     public AsyncRelayCommand AddRecordCommand { get; }
+
     public AsyncRelayCommand EditRecordCommand { get; }
+
     public AsyncRelayCommand ArchiveRecordCommand { get; }
 
     public StudentRecord? SelectedRecord
     {
         get => selectedRecord;
+
         set
         {
             if (SetProperty(ref selectedRecord, value))
@@ -36,12 +47,14 @@ public class StudentRecordsViewModel : StudentRecordViewModel
     public bool IncludeArchived
     {
         get => includeArchived;
+
         set => SetProperty(ref includeArchived, value);
     }
 
     public bool IsBusy
     {
         get => isBusy;
+
         private set
         {
             if (SetProperty(ref isBusy, value))
@@ -57,6 +70,7 @@ public class StudentRecordsViewModel : StudentRecordViewModel
     public string StatusMessage
     {
         get => statusMessage;
+
         private set => SetProperty(ref statusMessage, value);
     }
 
@@ -65,19 +79,26 @@ public class StudentRecordsViewModel : StudentRecordViewModel
         IStudentRecordDialogService dialogService)
     {
         ArgumentNullException.ThrowIfNull(student);
+
         Student = student;
 
         this.dialogService = dialogService
             ?? throw new ArgumentNullException(nameof(dialogService));
 
         RefreshCommand = new AsyncRelayCommand(
-            LoadRecordsAsync, HandleCommandError, () => !IsBusy);
+            LoadRecordsAsync,
+            HandleCommandError,
+            () => !IsBusy);
 
         AddRecordCommand = new AsyncRelayCommand(
-            AddRecordAsync, HandleCommandError, () => !IsBusy);
+            AddRecordAsync,
+            HandleCommandError,
+            () => !IsBusy);
 
         EditRecordCommand = new AsyncRelayCommand(
-            EditRecordAsync, HandleCommandError, CanModifySelectedRecord);
+            EditRecordAsync,
+            HandleCommandError,
+            CanModifySelectedRecord);
 
         ArchiveRecordCommand = new AsyncRelayCommand(
             ArchiveSelectedRecordAsync,
@@ -105,7 +126,7 @@ public class StudentRecordsViewModel : StudentRecordViewModel
     {
         StatusMessage =
             "Thao tác chưa hoàn tất. "
-            + "Nhấn Refresh để kiểm tra dữ liệu mới nhất.";
+            + "Nhấn Tải lại để kiểm tra dữ liệu mới nhất.";
 
         dialogService.ShowWarning(ex.Message);
     }
@@ -118,11 +139,12 @@ public class StudentRecordsViewModel : StudentRecordViewModel
         }
 
         IsBusy = true;
-        StatusMessage = "Loading records...";
+        StatusMessage = "Đang tải hồ sơ...";
 
         try
         {
-            await ReloadRecordsCoreAsync(SelectedRecord?.RecordID);
+            await ReloadRecordsCoreAsync(
+                SelectedRecord?.RecordID);
         }
         finally
         {
@@ -132,7 +154,10 @@ public class StudentRecordsViewModel : StudentRecordViewModel
 
     private async Task ReloadRecordsCoreAsync(int? selectedRecordID)
     {
-        var records = await GetAsync(Student.StudentID, IncludeArchived);
+        // Chỉ thay danh sách khi truy vấn đã thành công.
+        var records = await GetAsync(
+            Student.StudentID,
+            IncludeArchived);
 
         SelectedRecord = null;
         Records.Clear();
@@ -146,8 +171,8 @@ public class StudentRecordsViewModel : StudentRecordViewModel
             record => record.RecordID == selectedRecordID);
 
         StatusMessage = Records.Count == 0
-            ? "No records found for the current filter."
-            : $"{Records.Count} record(s) loaded.";
+            ? "Không có hồ sơ phù hợp với bộ lọc."
+            : $"Đã tải {Records.Count} hồ sơ.";
     }
 
     private async Task AddRecordAsync()
@@ -186,7 +211,9 @@ public class StudentRecordsViewModel : StudentRecordViewModel
 
         try
         {
-            bool saved = dialogService.ShowEditRecord(Student, record);
+            bool saved = dialogService.ShowEditRecord(
+                Student,
+                record);
 
             if (!saved)
             {
@@ -221,9 +248,12 @@ public class StudentRecordsViewModel : StudentRecordViewModel
                 return;
             }
 
-            StatusMessage = "Archiving record...";
+            StatusMessage = "Đang lưu trữ hồ sơ...";
 
-            await ArchiveAsync(Student.StudentID, record.RecordID);
+            await ArchiveAsync(
+                Student.StudentID,
+                record.RecordID,
+                record.RowVer);
 
             record.IsArchived = true;
             SelectedRecord = null;
@@ -243,7 +273,7 @@ public class StudentRecordsViewModel : StudentRecordViewModel
         int recordID,
         string successMessage)
     {
-        StatusMessage = "Loading records...";
+        StatusMessage = "Đang tải hồ sơ...";
 
         try
         {
@@ -252,8 +282,8 @@ public class StudentRecordsViewModel : StudentRecordViewModel
         catch (Exception ex)
         {
             StatusMessage =
-                "Dữ liệu đã được lưu nhưng tải lại thất bại. "
-                + "Nhấn Refresh để cập nhật.";
+                "Dữ liệu đã lưu nhưng tải lại thất bại. "
+                + "Nhấn Tải lại để cập nhật.";
 
             dialogService.ShowWarning(
                 "Thao tác lưu đã thành công, "

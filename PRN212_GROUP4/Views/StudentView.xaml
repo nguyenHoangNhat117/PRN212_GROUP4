@@ -13,14 +13,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Tiêu đề -->
+        <!-- Tiêu đề và nút thêm -->
         <DockPanel Margin="0,0,0,20">
-            <Button
-                DockPanel.Dock="Right"
-                Content="+  Thêm sinh viên"
-                Command="{Binding AddStudentCommand}"
-                Visibility="{Binding CanManageStudents,
-                    Converter={StaticResource BoolVisibility}}"/>
+            <Button DockPanel.Dock="Right"
+                    Content="+  Thêm sinh viên"
+                    Command="{Binding AddStudentCommand}"
+                    Visibility="{Binding CanManageStudents,
+                        Converter={StaticResource BoolVisibility}}"/>
 
             <StackPanel>
                 <TextBlock
@@ -76,6 +75,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Danh sách sinh viên -->
             <Border Style="{StaticResource Card}"
                     Padding="0"
                     Margin="0,0,0,6">
@@ -96,7 +96,11 @@
                         Grid.Row="1"
                         ItemsSource="{Binding DashboardStudents}"
                         SelectedItem="{Binding SelectedStudent, Mode=TwoWay}"
-                        AutoGenerateColumns="False">
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        CanUserAddRows="False"
+                        CanUserDeleteRows="False"
+                        HorizontalScrollBarVisibility="Auto">
 
                         <DataGrid.Columns>
                             <DataGridTextColumn
@@ -107,7 +111,13 @@
                             <DataGridTextColumn
                                 Header="Họ và tên"
                                 Binding="{Binding FullName}"
-                                Width="*"/>
+                                Width="*"
+                                MinWidth="160"/>
+
+                            <DataGridTextColumn
+                                Header="Ngành học"
+                                Binding="{Binding MajorName}"
+                                Width="170"/>
 
                             <DataGridTextColumn
                                 Header="Trạng thái"
@@ -118,6 +128,7 @@
                 </Grid>
             </Border>
 
+            <!-- Chi tiết sinh viên đang chọn -->
             <Border Grid.Column="2"
                     Style="{StaticResource Card}"
                     Margin="0,0,6,6">
@@ -150,6 +161,24 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Thông tin cá nhân -->
+                        <TextBlock Text="Ngày sinh"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.DateOfBirth,
+                                StringFormat=dd/MM/yyyy,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Giới tính"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.Gender,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
                         <TextBlock Text="Email"
                                    Style="{StaticResource Label}"/>
 
@@ -167,6 +196,16 @@
                                 TargetNullValue='Chưa cập nhật'}"
                             Margin="0,0,0,18"/>
 
+                        <TextBlock Text="Địa chỉ"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.Address,
+                                TargetNullValue='Chưa cập nhật'}"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,18"/>
+
+                        <!-- Thông tin học vụ -->
                         <TextBlock Text="Khoa"
                                    Style="{StaticResource Label}"/>
 
@@ -176,15 +215,67 @@
                             TextWrapping="Wrap"
                             Margin="0,0,0,18"/>
 
-                        <TextBlock Text="Ngày sinh"
+                        <TextBlock Text="Mã ngành"
                                    Style="{StaticResource Label}"/>
 
                         <TextBlock
-                            Text="{Binding SelectedStudent.DateOfBirth,
+                            Text="{Binding SelectedStudent.MajorCode,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Ngành học"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.MajorName,
+                                TargetNullValue='Chưa cập nhật'}"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Khóa tuyển sinh"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.Cohort,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Ngày nhập học"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.EnrollmentDate,
                                 StringFormat=dd/MM/yyyy,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Trạng thái học tập"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.StudentStatus,
+                                TargetNullValue='Chưa cập nhật'}"
+                            Margin="0,0,0,18"/>
+
+                        <!-- Liên hệ khẩn cấp -->
+                        <TextBlock Text="Người liên hệ khẩn cấp"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.EmergencyContactName,
+                                TargetNullValue='Chưa cập nhật'}"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,18"/>
+
+                        <TextBlock Text="Số điện thoại liên hệ khẩn cấp"
+                                   Style="{StaticResource Label}"/>
+
+                        <TextBlock
+                            Text="{Binding SelectedStudent.EmergencyContactPhone,
                                 TargetNullValue='Chưa cập nhật'}"
                             Margin="0,0,0,22"/>
 
+                        <!-- Giữ các command hiện tại -->
                         <Button Content="Chỉnh sửa hồ sơ"
                                 Command="{Binding EditStudentCommand}"/>
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace PRN212_GROUP4.Models.Entities;
@@ -24,6 +24,8 @@ public partial class StudentRecord
     public int? CreatedByUserId { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public byte[] RowVer { get; set; } = null!;
 
     public virtual User? CreatedByUser { get; set; }
 

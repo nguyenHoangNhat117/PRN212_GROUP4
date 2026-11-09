@@ -29,11 +29,25 @@ public partial class Student
 
     public byte[] RowVer { get; set; } = null!;
 
+    public string? Gender { get; set; }
+
+    public string? Address { get; set; }
+
+    public int? MajorId { get; set; }
+
+    public string? Cohort { get; set; }
+
+    public string? EmergencyContactName { get; set; }
+
+    public string? EmergencyContactPhone { get; set; }
+
     public virtual ICollection<CourseEnrollment> CourseEnrollments { get; set; } = new List<CourseEnrollment>();
 
     public virtual Department? Department { get; set; }
 
     public virtual ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+
+    public virtual Major? Major { get; set; }
 
     public virtual ICollection<StudentRecord> StudentRecords { get; set; } = new List<StudentRecord>();
 

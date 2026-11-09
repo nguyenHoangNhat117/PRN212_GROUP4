@@ -21,8 +21,7 @@ public partial class CourseEnrollment
 
     public virtual Course Course { get; set; } = null!;
 
-    public virtual ICollection<Enrollment> Enrollments { get; set; }
-    = new List<Enrollment>();
+    public virtual Enrollment? Enrollment { get; set; }
 
     public virtual Semester Semester { get; set; } = null!;
 

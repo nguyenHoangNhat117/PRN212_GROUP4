@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 
@@ -6,14 +9,19 @@ namespace PRN212_GROUP4.ViewModels;
 public class EditStudentRecordViewModel : StudentRecordViewModel
 {
     private readonly StudentRecord originalRecord;
+
     private bool isBusy;
     private bool isSaved;
+
     private string statusMessage = string.Empty;
     private DateTime? recordDate;
 
     public Student Student { get; }
+
     public StudentRecord EditedRecord { get; }
+
     public AsyncRelayCommand SaveCommand { get; }
+
     public string? SavedWarning { get; private set; }
 
     public event EventHandler? SaveSucceeded;
@@ -21,12 +29,14 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
     public DateTime? RecordDate
     {
         get => recordDate;
+
         set => SetProperty(ref recordDate, value);
     }
 
     public bool IsBusy
     {
         get => isBusy;
+
         private set
         {
             if (SetProperty(ref isBusy, value))
@@ -37,11 +47,13 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
     }
 
     public bool IsFormEnabled => !IsBusy && !isSaved;
+
     public bool CanClose => !IsBusy;
 
     public string StatusMessage
     {
         get => statusMessage;
+
         private set => SetProperty(ref statusMessage, value);
     }
 
@@ -65,8 +77,10 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
         }
 
         Student = student;
+
         originalRecord = CopyRecord(record);
         EditedRecord = CopyRecord(record);
+
         RecordDate = record.RecordDate;
 
         SaveCommand = new AsyncRelayCommand(
@@ -79,13 +93,14 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
     {
         OnPropertyChanged(nameof(IsFormEnabled));
         OnPropertyChanged(nameof(CanClose));
+
         SaveCommand.RaiseCanExecuteChanged();
     }
 
     private async Task SaveAsync()
     {
         IsBusy = true;
-        StatusMessage = "Saving...";
+        StatusMessage = "Đang lưu...";
 
         try
         {
@@ -97,11 +112,14 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
 
             EditedRecord.RecordDate = RecordDate.Value.Date;
 
-            var result = await UpdateAsync(EditedRecord, originalRecord);
+            var result = await UpdateAsync(
+                EditedRecord,
+                originalRecord);
 
             SavedWarning = result.Warning;
+
             isSaved = true;
-            StatusMessage = "Changes saved.";
+            StatusMessage = "Đã lưu thay đổi.";
         }
         finally
         {
@@ -131,7 +149,9 @@ public class EditStudentRecordViewModel : StudentRecordViewModel
             RecordDate = source.RecordDate,
             IsArchived = source.IsArchived,
             CreatedByUserID = source.CreatedByUserID,
-            CreatedAt = source.CreatedAt
+            CreatedAt = source.CreatedAt,
+
+            RowVer = source.RowVer.ToArray()
         };
     }
 }

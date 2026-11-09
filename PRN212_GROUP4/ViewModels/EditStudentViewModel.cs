@@ -1,4 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 using PRN212_GROUP4.Services;
@@ -9,12 +12,20 @@ public class EditStudentViewModel : StudentProfileViewModel
 {
     private bool isBusy;
     private bool isSaved;
-    private bool departmentsLoaded;
-    private string statusMessage = "Loading departments...";
+    private bool ready;
+
+    private string statusMessage = "Đang tải dữ liệu...";
 
     public Student EditedStudent { get; }
+
     public StudentDateFields Dates { get; }
-    public ObservableCollection<Department> Departments { get; } = new();
+
+    public ObservableCollection<Lookup> Majors { get; } = new();
+
+    public string[] Genders { get; } =
+    {
+        "Nam", "Nữ", "Khác"
+    };
 
     public string[] StudentStatuses { get; } =
     {
@@ -31,6 +42,7 @@ public class EditStudentViewModel : StudentProfileViewModel
     public bool IsBusy
     {
         get => isBusy;
+
         private set
         {
             if (SetProperty(ref isBusy, value))
@@ -41,13 +53,14 @@ public class EditStudentViewModel : StudentProfileViewModel
     }
 
     public bool IsFormEnabled =>
-        !IsBusy && departmentsLoaded && !isSaved;
+        !IsBusy && ready && !isSaved;
 
     public bool CanClose => !IsBusy;
 
     public string StatusMessage
     {
         get => statusMessage;
+
         private set => SetProperty(ref statusMessage, value);
     }
 
@@ -61,17 +74,31 @@ public class EditStudentViewModel : StudentProfileViewModel
             StudentCode = student.StudentCode,
             UserID = student.UserID,
             FullName = student.FullName,
+
             DateOfBirth = student.DateOfBirth,
+            Gender = student.Gender,
             Email = student.Email,
             Phone = student.Phone,
+            Address = student.Address,
+
             DepartmentID = student.DepartmentID,
             DepartmentName = student.DepartmentName,
+
+            MajorID = student.MajorID,
+            MajorCode = student.MajorCode,
+            MajorName = student.MajorName,
+
+            Cohort = student.Cohort,
             EnrollmentDate = student.EnrollmentDate,
             StudentStatus = student.StudentStatus,
+
+            EmergencyContactName = student.EmergencyContactName,
+            EmergencyContactPhone = student.EmergencyContactPhone,
+
             CreatedAt = student.CreatedAt,
-            RowVer = student.RowVer == null
-                ? Array.Empty<byte>()
-                : (byte[])student.RowVer.Clone()
+
+            RowVer = student.RowVer?.ToArray()
+                ?? Array.Empty<byte>()
         };
 
         Dates = new StudentDateFields(EditedStudent);
@@ -79,59 +106,70 @@ public class EditStudentViewModel : StudentProfileViewModel
         SaveCommand = new AsyncRelayCommand(
             SaveAsync,
             HandleSaveError,
-            () => !IsBusy && departmentsLoaded && !isSaved);
+            () => !IsBusy && ready && !isSaved);
     }
 
     private void RefreshState()
     {
         OnPropertyChanged(nameof(IsFormEnabled));
         OnPropertyChanged(nameof(CanClose));
+
         SaveCommand.RaiseCanExecuteChanged();
     }
 
+    // Giữ tên để code-behind hiện tại tiếp tục gọi được.
     public async Task LoadDepartmentsAsync()
     {
-        if (IsBusy || departmentsLoaded || isSaved)
+        if (IsBusy || ready || isSaved)
         {
             return;
         }
 
         IsBusy = true;
-        StatusMessage = "Loading departments...";
 
         try
         {
-            var departments = await DepartmentsAsync();
+            Majors.Clear();
 
-            Departments.Clear();
-
-            foreach (var department in departments)
+            if (CanEditAcademicFields)
             {
-                Departments.Add(department);
-            }
-
-            if (EditedStudent.DepartmentID.HasValue
-                && !Departments.Any(department =>
-                    department.DepartmentID
-                    == EditedStudent.DepartmentID.Value))
-            {
-                Departments.Add(new Department
+                if (EditedStudent.DepartmentID is not int departmentId)
                 {
-                    DepartmentID = EditedStudent.DepartmentID.Value,
-                    DepartmentName =
-                        EditedStudent.DepartmentName ?? "Khoa hiện tại",
-                    IsActive = false
-                });
+                    throw new InvalidOperationException(
+                        "Hồ sơ chưa có khoa phụ trách.");
+                }
+
+                var majors = await MajorsAsync(departmentId);
+
+                foreach (var major in majors)
+                {
+                    Majors.Add(major);
+                }
             }
 
-            departmentsLoaded = true;
-            StatusMessage = string.Empty;
+            // Vẫn hiển thị ngành hiện tại nếu ngành đã ngừng hoạt động.
+            if (EditedStudent.MajorID is int current
+                && !Majors.Any(major => major.Id == current))
+            {
+                Majors.Add(new Lookup(
+                    current,
+                    EditedStudent.MajorName ?? "Ngành hiện tại"));
+            }
+
+            OnPropertyChanged(nameof(EditedStudent));
+
+            ready = true;
+
+            StatusMessage = CanEditAcademicFields
+                ? string.Empty
+                : "Bạn chỉ được sửa email và số điện thoại.";
         }
         catch (Exception ex)
         {
+            ready = false;
+
             StatusMessage =
-                "Không thể tải danh sách khoa. "
-                + "Hãy đóng form và mở lại.\n"
+                "Không tải được dữ liệu. Đóng form và mở lại.\n"
                 + ex.Message;
         }
         finally
@@ -143,14 +181,19 @@ public class EditStudentViewModel : StudentProfileViewModel
     private async Task SaveAsync()
     {
         IsBusy = true;
-        StatusMessage = "Saving...";
+        StatusMessage = "Đang lưu...";
 
         try
         {
-            Dates.ValidateAndApply(EditedStudent);
+            if (CanEditAcademicFields)
+            {
+                Dates.ValidateAndApply(EditedStudent);
+            }
+
             await UpdateAsync(EditedStudent);
+
             isSaved = true;
-            StatusMessage = "Changes saved.";
+            StatusMessage = "Đã lưu hồ sơ.";
         }
         finally
         {
@@ -163,7 +206,7 @@ public class EditStudentViewModel : StudentProfileViewModel
     private void HandleSaveError(Exception ex)
     {
         StatusMessage = isSaved
-            ? "Dữ liệu đã được lưu. Hãy đóng form.\n" + ex.Message
-            : "Không thể cập nhật sinh viên.\n" + ex.Message;
+            ? "Dữ liệu đã lưu. Hãy đóng form.\n" + ex.Message
+            : "Không thể cập nhật.\n" + ex.Message;
     }
 }
