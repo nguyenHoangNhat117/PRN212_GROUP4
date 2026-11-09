@@ -1,4 +1,8 @@
-﻿using System.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Services;
 using E = PRN212_GROUP4.Models.Entities;
@@ -6,7 +10,9 @@ using D = PRN212_GROUP4.Models;
 
 namespace PRN212_GROUP4.ViewModels;
 
-public sealed record RecordSaveResult(int RecordId, string? Warning);
+public sealed record RecordSaveResult(
+    int RecordId,
+    string? Warning);
 
 public class StudentRecordViewModel : ViewModelBase
 {
@@ -15,7 +21,8 @@ public class StudentRecordViewModel : ViewModelBase
     public StudentRecordViewModel(
         Func<E.StudentManagementContext>? createDb = null)
     {
-        this.createDb = createDb ?? (() => new E.StudentManagementContext());
+        this.createDb =
+            createDb ?? (() => new E.StudentManagementContext());
     }
 
     public async Task<List<D.StudentRecord>> GetAsync(
@@ -23,12 +30,13 @@ public class StudentRecordViewModel : ViewModelBase
         bool archived)
     {
         using var db = createDb();
+
         var access = await AccessService.RequireAsync(db, "F05");
 
         await AccessService.EnsureStudentAsync(
             db, access, studentId, "F05");
 
-        var entities = await db.StudentRecords
+        var rows = await db.StudentRecords
             .AsNoTracking()
             .Where(record =>
                 record.StudentId == studentId
@@ -37,14 +45,16 @@ public class StudentRecordViewModel : ViewModelBase
             .ThenByDescending(record => record.RecordId)
             .ToListAsync();
 
-        return entities.Select(StudentMapping.ToDto).ToList();
+        return rows.Select(StudentMapping.ToDto).ToList();
     }
 
-    public async Task<RecordSaveResult> AddAsync(D.StudentRecord record)
+    public async Task<RecordSaveResult> AddAsync(
+        D.StudentRecord record)
     {
         StudentValidation.ValidateStudentRecord(record);
 
         using var db = createDb();
+
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -53,7 +63,8 @@ public class StudentRecordViewModel : ViewModelBase
         await AccessService.EnsureStudentAsync(
             db, access, record.StudentID, "F05");
 
-        string? warning = await DuplicateWarningAsync(db, record);
+        string? warning = await DuplicateWarningAsync(
+            db, record, excludeId: 0);
 
         var entity = new E.StudentRecord
         {
@@ -72,6 +83,9 @@ public class StudentRecordViewModel : ViewModelBase
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        record.RecordID = entity.RecordId;
+        record.RowVer = entity.RowVer.ToArray();
+
         return new RecordSaveResult(entity.RecordId, warning);
     }
 
@@ -84,12 +98,15 @@ public class StudentRecordViewModel : ViewModelBase
             || original.IsArchived)
         {
             throw new ArgumentException(
-                "Hồ sơ không hợp lệ hoặc đã archive.");
+                "Hồ sơ không hợp lệ hoặc đã lưu trữ.");
         }
+
+        RequireVersion(original.RowVer);
 
         StudentValidation.ValidateStudentRecord(edited);
 
         using var db = createDb();
+
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -98,59 +115,57 @@ public class StudentRecordViewModel : ViewModelBase
         await AccessService.EnsureStudentAsync(
             db, access, original.StudentID, "F05");
 
-        string? warning = await DuplicateWarningAsync(db, edited);
-
-        var originalDate = DateOnly.FromDateTime(original.RecordDate);
-        var newDate = DateOnly.FromDateTime(edited.RecordDate);
-
-        int count = await db.StudentRecords
-            .Where(record =>
+        var entity = await db.StudentRecords.SingleOrDefaultAsync(
+            record =>
                 record.RecordId == original.RecordID
-                && record.StudentId == original.StudentID
-                && !record.IsArchived
-                && record.DocumentNumber == original.DocumentNumber
-                && record.RecordTitle == original.RecordTitle
-                && record.RecordType == original.RecordType
-                && record.RecordContent == original.RecordContent
-                && record.RecordDate == originalDate)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(record => record.RecordType, edited.RecordType)
-                .SetProperty(
-                    record => record.DocumentNumber, edited.DocumentNumber)
-                .SetProperty(record => record.RecordTitle, edited.RecordTitle)
-                .SetProperty(
-                    record => record.RecordContent, edited.RecordContent)
-                .SetProperty(record => record.RecordDate, newDate));
+                && record.StudentId == original.StudentID);
 
-        if (count != 1)
+        if (entity == null
+            || entity.IsArchived
+            || !entity.RowVer.SequenceEqual(original.RowVer))
         {
             throw new InvalidOperationException(
-                "Hồ sơ đã thay đổi hoặc archive. Hãy tải lại.");
+                "Hồ sơ đã thay đổi hoặc lưu trữ. Hãy tải lại.");
         }
 
-        await transaction.CommitAsync();
-        return new RecordSaveResult(edited.RecordID, warning);
+        string? warning = await DuplicateWarningAsync(
+            db, edited, original.RecordID);
+
+        entity.RecordType = edited.RecordType;
+        entity.DocumentNumber = edited.DocumentNumber;
+        entity.RecordTitle = edited.RecordTitle;
+        entity.RecordContent = edited.RecordContent;
+        entity.RecordDate = DateOnly.FromDateTime(edited.RecordDate);
+
+        db.Entry(entity)
+            .Property(record => record.RowVer)
+            .OriginalValue = original.RowVer.ToArray();
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            edited.RowVer = entity.RowVer.ToArray();
+
+            return new RecordSaveResult(entity.RecordId, warning);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new InvalidOperationException(
+                "Hồ sơ vừa thay đổi. Hãy tải lại.", ex);
+        }
     }
 
-    private static async Task<string?> DuplicateWarningAsync(
-        E.StudentManagementContext db,
-        D.StudentRecord record)
+    public async Task ArchiveAsync(
+        int studentId,
+        int recordId,
+        byte[] expectedRowVer)
     {
-        bool duplicate = await db.StudentRecords.FromSqlInterpolated($@"
-            SELECT * FROM dbo.StudentRecords WITH (UPDLOCK, HOLDLOCK)
-            WHERE StudentID = {record.StudentID}
-              AND RecordType = {record.RecordType}
-              AND DocumentNumber = {record.DocumentNumber}
-              AND RecordID <> {record.RecordID}").AnyAsync();
+        RequireVersion(expectedRowVer);
 
-        return duplicate
-            ? "Cảnh báo: đã có hồ sơ cùng sinh viên, loại hồ sơ và mã chứng từ. Hồ sơ vẫn được lưu; hãy kiểm tra tính hợp lệ."
-            : null;
-    }
-
-    public async Task ArchiveAsync(int studentId, int recordId)
-    {
         using var db = createDb();
+
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
@@ -159,20 +174,69 @@ public class StudentRecordViewModel : ViewModelBase
         await AccessService.EnsureStudentAsync(
             db, access, studentId, "F05");
 
-        int count = await db.StudentRecords
-            .Where(record =>
+        var entity = await db.StudentRecords.SingleOrDefaultAsync(
+            record =>
                 record.RecordId == recordId
-                && record.StudentId == studentId
-                && !record.IsArchived)
-            .ExecuteUpdateAsync(setters =>
-                setters.SetProperty(record => record.IsArchived, true));
+                && record.StudentId == studentId);
 
-        if (count != 1)
+        if (entity == null
+            || entity.IsArchived
+            || !entity.RowVer.SequenceEqual(expectedRowVer))
         {
             throw new InvalidOperationException(
-                "Hồ sơ không còn tồn tại hoặc đã archive.");
+                "Hồ sơ đã thay đổi hoặc lưu trữ. "
+                + "Hãy tải lại trước khi xác nhận.");
         }
 
-        await transaction.CommitAsync();
+        entity.IsArchived = true;
+
+        db.Entry(entity)
+            .Property(record => record.RowVer)
+            .OriginalValue = expectedRowVer.ToArray();
+
+        try
+        {
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new InvalidOperationException(
+                "Hồ sơ vừa thay đổi. Hãy tải lại.", ex);
+        }
+    }
+
+    private static void RequireVersion(byte[]? version)
+    {
+        if (version?.Length != 8)
+        {
+            throw new InvalidOperationException(
+                "Thiếu phiên bản hồ sơ. Hãy tải lại danh sách.");
+        }
+    }
+
+    private static async Task<string?> DuplicateWarningAsync(
+        E.StudentManagementContext db,
+        D.StudentRecord record,
+        int excludeId)
+    {
+        // Kiểm tra cả hồ sơ đã archive để giữ lịch sử.
+        // Khóa phạm vi trong transaction tránh kiểm tra trùng
+        // không nhất quán khi có nhiều người cùng thêm.
+        bool duplicate = await db.StudentRecords
+            .FromSqlInterpolated($@"
+                SELECT *
+                FROM dbo.StudentRecords WITH (UPDLOCK, HOLDLOCK)
+                WHERE StudentID = {record.StudentID}
+                  AND RecordType = {record.RecordType}
+                  AND DocumentNumber = {record.DocumentNumber}
+                  AND RecordID <> {excludeId}")
+            .AnyAsync();
+
+        return duplicate
+            ? "Cảnh báo: đã có hồ sơ cùng sinh viên, loại hồ sơ "
+              + "và mã chứng từ. Hồ sơ vẫn được lưu; "
+              + "hãy kiểm tra tính hợp lệ."
+            : null;
     }
 }

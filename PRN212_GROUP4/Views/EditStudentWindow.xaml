@@ -1,7 +1,7 @@
 ﻿<Window x:Class="PRN212_GROUP4.Views.EditStudentWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Edit Student"
+        Title="Chỉnh sửa sinh viên"
         Width="760"
         Height="820"
         MinWidth="600"
@@ -20,15 +20,17 @@
 
         <StackPanel Margin="0,0,0,22">
             <TextBlock
-                Text="Edit student"
+                Text="Chỉnh sửa sinh viên"
                 FontFamily="{StaticResource PlayfulGeometricDisplay}"
                 FontSize="28"
                 FontWeight="Bold"
                 Foreground="#253044"/>
 
-            <TextBlock Text="Update the selected student profile."
-                       Foreground="#756E66"
-                       Margin="0,8,0,0"/>
+            <TextBlock
+                Text="Staff cập nhật hồ sơ trong khoa. Sinh viên chỉ sửa email và số điện thoại."
+                Foreground="#756E66"
+                TextWrapping="Wrap"
+                Margin="0,8,0,0"/>
         </StackPanel>
 
         <Border Grid.Row="1"
@@ -41,7 +43,7 @@
                             Margin="0,0,8,0"
                             IsEnabled="{Binding IsFormEnabled}">
 
-                    <TextBlock Text="Student code"
+                    <TextBlock Text="Mã sinh viên"
                                Style="{StaticResource FieldLabel}"
                                Margin="0,0,0,7"/>
 
@@ -51,7 +53,7 @@
                         Text="{Binding EditedStudent.StudentCode,
                             Mode=OneWay}"/>
 
-                    <TextBlock Text="Full name *"
+                    <TextBlock Text="Họ và tên *"
                                Style="{StaticResource FieldLabel}"/>
 
                     <TextBox
@@ -61,7 +63,7 @@
                             Mode=TwoWay,
                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Date of birth (dd/MM/yyyy)"
+                    <TextBlock Text="Ngày sinh — dd/MM/yyyy"
                                Style="{StaticResource FieldLabel}"/>
 
                     <Grid>
@@ -73,7 +75,7 @@
                         <TextBox
                             IsEnabled="{Binding CanEditAcademicFields}"
                             MaxLength="10"
-                            ToolTip="Ví dụ: 20/10/2004"
+                            ToolTip="Ví dụ: 20/10/2005"
                             Text="{Binding Dates.DateOfBirthText,
                                 Mode=TwoWay,
                                 UpdateSourceTrigger=PropertyChanged}"/>
@@ -87,6 +89,15 @@
                                 UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
+                    <TextBlock Text="Giới tính"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <ComboBox
+                        IsEnabled="{Binding CanEditAcademicFields}"
+                        ItemsSource="{Binding Genders}"
+                        SelectedItem="{Binding EditedStudent.Gender,
+                            Mode=TwoWay}"/>
+
                     <TextBlock Text="Email"
                                Style="{StaticResource FieldLabel}"/>
 
@@ -96,7 +107,7 @@
                             Mode=TwoWay,
                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Phone"
+                    <TextBlock Text="Số điện thoại"
                                Style="{StaticResource FieldLabel}"/>
 
                     <TextBox
@@ -105,19 +116,49 @@
                             Mode=TwoWay,
                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Department"
+                    <TextBlock Text="Địa chỉ"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <TextBox
+                        IsEnabled="{Binding CanEditAcademicFields}"
+                        MaxLength="250"
+                        TextWrapping="Wrap"
+                        AcceptsReturn="True"
+                        MinHeight="60"
+                        Text="{Binding EditedStudent.Address,
+                            Mode=TwoWay,
+                            UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Text="Khoa"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <TextBox
+                        IsReadOnly="True"
+                        Text="{Binding EditedStudent.DepartmentName,
+                            Mode=OneWay}"/>
+
+                    <TextBlock Text="Ngành học"
                                Style="{StaticResource FieldLabel}"/>
 
                     <ComboBox
                         IsEnabled="{Binding CanEditAcademicFields}"
-                        ItemsSource="{Binding Departments}"
-                        DisplayMemberPath="DepartmentName"
-                        SelectedValuePath="DepartmentID"
-                        SelectedValue="{Binding EditedStudent.DepartmentID,
+                        ItemsSource="{Binding Majors}"
+                        DisplayMemberPath="Name"
+                        SelectedValuePath="Id"
+                        SelectedValue="{Binding EditedStudent.MajorID,
+                            Mode=TwoWay}"/>
+
+                    <TextBlock Text="Khóa tuyển sinh"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <TextBox
+                        IsEnabled="{Binding CanEditAcademicFields}"
+                        MaxLength="20"
+                        Text="{Binding EditedStudent.Cohort,
                             Mode=TwoWay,
                             UpdateSourceTrigger=PropertyChanged}"/>
 
-                    <TextBlock Text="Enrollment date (dd/MM/yyyy)"
+                    <TextBlock Text="Ngày nhập học — dd/MM/yyyy"
                                Style="{StaticResource FieldLabel}"/>
 
                     <Grid>
@@ -129,7 +170,6 @@
                         <TextBox
                             IsEnabled="{Binding CanEditAcademicFields}"
                             MaxLength="10"
-                            ToolTip="Nhập ngày/tháng/năm"
                             Text="{Binding Dates.EnrollmentDateText,
                                 Mode=TwoWay,
                                 UpdateSourceTrigger=PropertyChanged}"/>
@@ -143,7 +183,7 @@
                                 UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
 
-                    <TextBlock Text="Student status"
+                    <TextBlock Text="Trạng thái học tập"
                                Style="{StaticResource FieldLabel}"/>
 
                     <ComboBox
@@ -152,7 +192,27 @@
                         SelectedItem="{Binding EditedStudent.StudentStatus,
                             Mode=TwoWay}"/>
 
-                    <TextBlock Text="* Required field"
+                    <TextBlock Text="Người liên hệ khẩn cấp"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <TextBox
+                        IsEnabled="{Binding CanEditAcademicFields}"
+                        MaxLength="120"
+                        Text="{Binding EditedStudent.EmergencyContactName,
+                            Mode=TwoWay,
+                            UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Text="Điện thoại liên hệ khẩn cấp"
+                               Style="{StaticResource FieldLabel}"/>
+
+                    <TextBox
+                        IsEnabled="{Binding CanEditAcademicFields}"
+                        MaxLength="16"
+                        Text="{Binding EditedStudent.EmergencyContactPhone,
+                            Mode=TwoWay,
+                            UpdateSourceTrigger=PropertyChanged}"/>
+
+                    <TextBlock Text="* Trường bắt buộc"
                                Foreground="#756E66"
                                FontSize="12"
                                Margin="0,18,0,0"/>
@@ -177,7 +237,7 @@
                         HorizontalAlignment="Right">
 
                 <Button x:Name="CancelButton"
-                        Content="Cancel"
+                        Content="Hủy"
                         IsCancel="True"
                         IsEnabled="{Binding CanClose}"
                         Style="{StaticResource FormButton}"
@@ -187,7 +247,7 @@
                         Margin="0,0,10,0"/>
 
                 <Button x:Name="SaveButton"
-                        Content="Save changes"
+                        Content="Lưu thay đổi"
                         Command="{Binding SaveCommand}"
                         Style="{StaticResource FormButton}"/>
             </StackPanel>

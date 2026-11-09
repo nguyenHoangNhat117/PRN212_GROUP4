@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 
@@ -9,24 +11,43 @@ public class AddStudentViewModel : StudentProfileViewModel
     private bool isBusy;
     private bool departmentsLoaded;
     private bool isSaved;
-    private string statusMessage = "Loading departments...";
+
+    private string statusMessage =
+        "Đang tải khoa và ngành học...";
 
     public Student NewStudent { get; }
+
     public StudentDateFields Dates { get; }
-    public ObservableCollection<Department> Departments { get; } = new();
+
+    public ObservableCollection<Department> Departments { get; }
+        = new();
+
+    public ObservableCollection<Lookup> Majors { get; }
+        = new();
+
+    public string[] Genders { get; } =
+    {
+        "Nam", "Nữ", "Khác"
+    };
 
     public string[] StudentStatuses { get; } =
     {
-        "ACTIVE", "INACTIVE", "GRADUATED", "SUSPENDED"
+        "ACTIVE",
+        "INACTIVE",
+        "GRADUATED",
+        "SUSPENDED"
     };
 
     public AsyncRelayCommand SaveCommand { get; }
+
     public int? CreatedStudentID { get; private set; }
+
     public event EventHandler? SaveSucceeded;
 
     public bool IsBusy
     {
         get => isBusy;
+
         private set
         {
             if (SetProperty(ref isBusy, value))
@@ -44,6 +65,7 @@ public class AddStudentViewModel : StudentProfileViewModel
     public string StatusMessage
     {
         get => statusMessage;
+
         private set => SetProperty(ref statusMessage, value);
     }
 
@@ -52,7 +74,8 @@ public class AddStudentViewModel : StudentProfileViewModel
         NewStudent = new Student
         {
             StudentStatus = "ACTIVE",
-            EnrollmentDate = DateTime.Today
+            EnrollmentDate = DateTime.Today,
+            Cohort = $"K{DateTime.Today.Year}"
         };
 
         Dates = new StudentDateFields(NewStudent);
@@ -67,6 +90,7 @@ public class AddStudentViewModel : StudentProfileViewModel
     {
         OnPropertyChanged(nameof(IsFormEnabled));
         OnPropertyChanged(nameof(CanClose));
+
         SaveCommand.RaiseCanExecuteChanged();
     }
 
@@ -78,26 +102,59 @@ public class AddStudentViewModel : StudentProfileViewModel
         }
 
         IsBusy = true;
-        StatusMessage = "Loading departments...";
+        StatusMessage = "Đang tải khoa và ngành học...";
 
         try
         {
             var departments = await DepartmentsAsync();
 
+            if (departments.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    "Không xác định được khoa đang phụ trách. "
+                    + "Kiểm tra tài khoản nhân viên học vụ.");
+            }
+
+            var department = departments[0];
+
+            var majors = await MajorsAsync(
+                department.DepartmentID);
+
+            if (majors.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "Khoa chưa có ngành học đang hoạt động.");
+            }
+
             Departments.Clear();
 
-            foreach (var department in departments)
+            foreach (var item in departments)
             {
-                Departments.Add(department);
+                Departments.Add(item);
             }
+
+            Majors.Clear();
+
+            foreach (var item in majors)
+            {
+                Majors.Add(item);
+            }
+
+            NewStudent.DepartmentID = department.DepartmentID;
+            NewStudent.DepartmentName = department.DepartmentName;
+            NewStudent.MajorID = null;
+
+            OnPropertyChanged(nameof(NewStudent));
 
             departmentsLoaded = true;
             StatusMessage = string.Empty;
         }
         catch (Exception ex)
         {
+            departmentsLoaded = false;
+
             StatusMessage =
-                "Không thể tải danh sách khoa. "
+                "Không thể tải khoa/ngành học. "
                 + "Hãy đóng form và mở lại.\n"
                 + ex.Message;
         }
@@ -110,14 +167,16 @@ public class AddStudentViewModel : StudentProfileViewModel
     private async Task SaveAsync()
     {
         IsBusy = true;
-        StatusMessage = "Saving...";
+        StatusMessage = "Đang lưu hồ sơ...";
 
         try
         {
             Dates.ValidateAndApply(NewStudent);
+
             CreatedStudentID = await AddAsync(NewStudent);
+
             isSaved = true;
-            StatusMessage = "Student saved.";
+            StatusMessage = "Đã lưu hồ sơ sinh viên.";
         }
         finally
         {
@@ -130,7 +189,7 @@ public class AddStudentViewModel : StudentProfileViewModel
     private void HandleSaveError(Exception ex)
     {
         StatusMessage = isSaved
-            ? "Dữ liệu đã được lưu. Hãy đóng form.\n" + ex.Message
+            ? "Hồ sơ đã được lưu. Hãy đóng form.\n" + ex.Message
             : "Không thể thêm sinh viên.\n" + ex.Message;
     }
 }
