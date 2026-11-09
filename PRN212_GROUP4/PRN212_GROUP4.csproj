@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -24,10 +23,5 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Models/**/*.cs;Helpers/CsvText.cs;Services/AccessService.cs;Services/AuthenticationService.cs;Services/CourseEnrollmentService.cs;Services/StudentProfileService.cs;Services/StudentRecordService.cs;Services/StudentValidation.cs;Services/StudentMapping.cs;Services/AcademicReportService.cs;Services/LoginValidation.cs;Services/AcademicCsvFormatter.cs;Services/AcademicSummaryService.cs" />
-    <ProjectReference Include="../PRN212_GROUP4.Core/PRN212_GROUP4.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -5,9 +5,8 @@ using PRN212_GROUP4.Services;
 
 namespace PRN212_GROUP4.ViewModels;
 
-public sealed class ReportsViewModel : ViewModelBase
+public sealed partial class ReportsViewModel : ViewModelBase
 {
-    private readonly AcademicReportService service = new();
     private bool busy;
     private string message = "";
     private ReportCriteria? generatedCriteria;
@@ -35,10 +34,12 @@ public sealed class ReportsViewModel : ViewModelBase
         private set => SetProperty(ref message, value);
     }
 
-    public AsyncRelayCommand GenerateCommand { get; }
-    public AsyncRelayCommand ExportCsvCommand { get; }
+    public AsyncRelayCommand GenerateCommand { get; private set; } = null!;
+    public AsyncRelayCommand ExportCsvCommand { get; private set; } = null!;
 
-    public ReportsViewModel()
+    public ReportsViewModel() : this(null, null) { }
+
+    partial void InitializeCommands()
     {
         GenerateCommand = new AsyncRelayCommand(
             GenerateAsync, Error, () => !busy);
@@ -69,7 +70,7 @@ public sealed class ReportsViewModel : ViewModelBase
 
         try
         {
-            var lookups = await new CourseEnrollmentService()
+            var lookups = await new EnrollmentViewModel()
                 .LookupsAsync("F16");
 
             Fill(Students, lookups.Students);
@@ -113,7 +114,7 @@ public sealed class ReportsViewModel : ViewModelBase
             var criteria = new ReportCriteria(
                 Type, StudentId, SemesterId, ClassId);
 
-            foreach (var row in await service.GenerateAsync(criteria))
+            foreach (var row in await GenerateAsync(criteria))
             {
                 Rows.Add(row);
             }
@@ -142,8 +143,7 @@ public sealed class ReportsViewModel : ViewModelBase
 
         try
         {
-            // Kiểm tra lại quyền và dữ liệu trước khi xuất.
-            var data = await service.GenerateAsync(generatedCriteria);
+            var data = await GenerateAsync(generatedCriteria);
 
             Rows.Clear();
 
