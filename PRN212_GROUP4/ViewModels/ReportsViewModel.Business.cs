@@ -1,75 +1,25 @@
-using System.Data;
+﻿using System.Data;
 using Microsoft.EntityFrameworkCore;
 using PRN212_GROUP4.Models;
 using PRN212_GROUP4.Models.Entities;
+using PRN212_GROUP4.Services;
 
-namespace PRN212_GROUP4.Services;
+namespace PRN212_GROUP4.ViewModels;
 
-// Dùng kết quả GPA chung do Lực phụ trách.
-public interface IAcademicGpaProvider
-{
-    Task ApplyAsync(
-        StudentManagementContext db,
-        List<(AcademicReportRow Row, int StudentId)> rows,
-        HashSet<int> allowedStudents);
-}
-
-public sealed class SqlViewGpaProvider : IAcademicGpaProvider
-{
-    public async Task ApplyAsync(
-        StudentManagementContext db,
-        List<(AcademicReportRow Row, int StudentId)> rows,
-        HashSet<int> allowedStudents)
-    {
-        var ids = rows
-            .Select(item => item.StudentId)
-            .Where(allowedStudents.Contains)
-            .Distinct()
-            .ToArray();
-
-        if (ids.Length == 0)
-        {
-            return;
-        }
-
-        var cumulative = await db.VStudentGpas
-            .AsNoTracking()
-            .Where(item => ids.Contains(item.StudentId))
-            .ToDictionaryAsync(
-                item => item.StudentId,
-                item => item.CumulativeGpa);
-
-        var semesters = await db.VStudentSemesterGpas
-            .AsNoTracking()
-            .Where(item => ids.Contains(item.StudentId))
-            .ToListAsync();
-
-        var terms = semesters.ToDictionary(
-            item => (item.StudentId, item.SemesterCode),
-            item => item.SemesterGpa);
-
-        foreach (var (row, studentId) in rows.Where(
-            item => allowedStudents.Contains(item.StudentId)))
-        {
-            row.CumulativeGpa =
-                cumulative.GetValueOrDefault(studentId);
-
-            row.SemesterGpa =
-                terms.GetValueOrDefault((studentId, row.Semester));
-        }
-    }
-}
-
-public sealed class AcademicReportService
+public sealed partial class ReportsViewModel
 {
     private readonly IAcademicGpaProvider gpa;
     private readonly Func<StudentManagementContext> createDb;
 
-    public AcademicReportService(IAcademicGpaProvider? gpa = null,
+    partial void InitializeCommands();
+
+    public ReportsViewModel(
+        IAcademicGpaProvider? gpa = null,
         Func<StudentManagementContext>? createDb = null)
     {
         this.gpa = gpa ?? new SqlViewGpaProvider();
         this.createDb = createDb ?? (() => new StudentManagementContext());
+        InitializeCommands();
     }
 
     public async Task<List<AcademicReportRow>> GenerateAsync(
@@ -82,7 +32,8 @@ public sealed class AcademicReportService
         }
 
         using var db = createDb();
-        using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        using var transaction = await db.Database
+            .BeginTransactionAsync(IsolationLevel.Serializable);
 
         var access = await AccessService.RequireAsync(db, "F16");
 
@@ -93,7 +44,7 @@ public sealed class AcademicReportService
                 criteria.StudentId == 0
                 || student.StudentId == criteria.StudentId);
 
-        var registrations = CourseEnrollmentService
+        var registrations = EnrollmentViewModel
             .Scoped(db, access, "F16")
             .Where(registration =>
                 (criteria.SemesterId == 0
@@ -102,7 +53,6 @@ public sealed class AcademicReportService
                 (criteria.ClassId == 0
                     || registration.ClassId == criteria.ClassId));
 
-        // Báo cáo danh sách sinh viên.
         if (criteria.Type == "Sinh viên")
         {
             if (criteria.SemesterId != 0 || criteria.ClassId != 0)
@@ -124,11 +74,11 @@ public sealed class AcademicReportService
                     Status = student.StudentStatus
                 })
                 .ToListAsync();
+
             await transaction.CommitAsync();
             return result;
         }
 
-        // Báo cáo danh sách lớp.
         if (criteria.Type == "Lớp")
         {
             var result = await (
@@ -148,26 +98,18 @@ public sealed class AcademicReportService
                         ?? registration.RegistrationStatus
                 })
                 .ToListAsync();
+
             await transaction.CommitAsync();
             return result;
         }
 
-        // Báo cáo kết quả học tập.
         var data = await BuildAcademicQuery(
-                db,
-                students,
-                registrations)
-            .ToListAsync();
+            db, students, registrations).ToListAsync();
 
-        // Chuyển thành dòng báo cáo sau khi dữ liệu đã được lấy.
-        var rows = data
-            .Select(item => (
-                Row: ToReportRow(item),
-                StudentId: item.StudentId))
-            .ToList();
+        var rows = data.Select(item => (
+            Row: ToReportRow(item),
+            StudentId: item.StudentId)).ToList();
 
-        // GPA tổng hợp có thể chứa kết quả ngoài lớp của Lecturer.
-        // Chỉ Staff trong phạm vi khoa được nhận GPA tổng hợp.
         bool canGpa = access.CanStaff("F16");
 
         var gpaStudents = await students
@@ -177,10 +119,7 @@ public sealed class AcademicReportService
             .Select(student => student.StudentId)
             .ToListAsync();
 
-        await gpa.ApplyAsync(
-            db,
-            rows,
-            gpaStudents.ToHashSet());
+        await gpa.ApplyAsync(db, rows, gpaStudents.ToHashSet());
 
         await transaction.CommitAsync();
         return rows.Select(item => item.Row).ToList();
@@ -191,8 +130,6 @@ public sealed class AcademicReportService
         IQueryable<PRN212_GROUP4.Models.Entities.Student> students,
         IQueryable<VCourseEnrollmentStatus> registrations)
     {
-        // Chỉ lấy các cột cần dùng.
-        // FinalScore nullable để LEFT JOIN có thể trả về NULL.
         var resultsQuery = db.VStudentCourseResults
             .AsNoTracking()
             .Select(result => new
@@ -206,13 +143,10 @@ public sealed class AcademicReportService
         return
             from registration in registrations
                 .Where(item => item.EnrollmentId != null)
-
             join student in students
                 on registration.StudentId equals student.StudentId
-
             join course in db.Courses
                 on registration.CourseId equals course.CourseId
-
             join result in resultsQuery
                 on new
                 {
@@ -225,13 +159,10 @@ public sealed class AcademicReportService
                     ClassCode = (string?)result.ClassCode
                 }
                 into results
-
             from result in results.DefaultIfEmpty()
-
             orderby student.StudentCode,
                 registration.SemesterCode,
                 registration.CourseCode
-
             select new AcademicResultData
             {
                 StudentId = student.StudentId,
@@ -246,8 +177,7 @@ public sealed class AcademicReportService
             };
     }
 
-    internal static AcademicReportRow ToReportRow(
-        AcademicResultData item)
+    internal static AcademicReportRow ToReportRow(AcademicResultData item)
     {
         return new AcademicReportRow
         {

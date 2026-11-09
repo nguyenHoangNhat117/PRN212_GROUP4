@@ -5,9 +5,8 @@ using PRN212_GROUP4.Services;
 
 namespace PRN212_GROUP4.ViewModels;
 
-public sealed class EnrollmentViewModel : ViewModelBase
+public sealed partial class EnrollmentViewModel : ViewModelBase
 {
-    private readonly CourseEnrollmentService service = new();
     private bool busy;
     private string message = "";
 
@@ -22,7 +21,6 @@ public sealed class EnrollmentViewModel : ViewModelBase
     public int StudentId { get; set; }
     public int SemesterId { get; set; }
     public int ClassId { get; set; }
-
     public int RegistrationStudentId { get; set; }
     public int CourseId { get; set; }
     public int RegistrationSemesterId { get; set; }
@@ -45,10 +43,12 @@ public sealed class EnrollmentViewModel : ViewModelBase
         private set => SetProperty(ref message, value);
     }
 
-    public AsyncRelayCommand RefreshCommand { get; }
-    public AsyncRelayCommand RegisterCommand { get; }
+    public AsyncRelayCommand RefreshCommand { get; private set; } = null!;
+    public AsyncRelayCommand RegisterCommand { get; private set; } = null!;
 
-    public EnrollmentViewModel()
+    public EnrollmentViewModel() : this(null) { }
+
+    partial void InitializeCommands()
     {
         RefreshCommand = new AsyncRelayCommand(
             RefreshAsync, Error, () => !busy);
@@ -77,7 +77,7 @@ public sealed class EnrollmentViewModel : ViewModelBase
 
         try
         {
-            var lookups = await service.LookupsAsync();
+            var lookups = await LookupsAsync();
 
             Fill(Students, lookups.Students, true);
             Fill(Courses, lookups.Courses, false);
@@ -89,7 +89,7 @@ public sealed class EnrollmentViewModel : ViewModelBase
             {
                 Fill(
                     RegistrationStudents,
-                    await service.RegistrationStudentsAsync(),
+                    await RegistrationStudentsAsync(),
                     false);
             }
 
@@ -133,7 +133,7 @@ public sealed class EnrollmentViewModel : ViewModelBase
     {
         Rows.Clear();
 
-        var rows = await service.ListAsync(
+        var rows = await ListAsync(
             StudentId, SemesterId, ClassId, Status);
 
         foreach (var row in rows)
@@ -166,7 +166,7 @@ public sealed class EnrollmentViewModel : ViewModelBase
 
         try
         {
-            int id = await service.RegisterAsync(
+            int id = await RegisterAsync(
                 RegistrationStudentId,
                 CourseId,
                 RegistrationSemesterId);

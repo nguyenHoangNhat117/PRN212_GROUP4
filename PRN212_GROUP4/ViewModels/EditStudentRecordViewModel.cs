@@ -1,162 +1,137 @@
-using System;
-using System.Threading.Tasks;
 using PRN212_GROUP4.Helpers;
 using PRN212_GROUP4.Models;
 
-namespace PRN212_GROUP4.ViewModels
+namespace PRN212_GROUP4.ViewModels;
+
+public class EditStudentRecordViewModel : StudentRecordViewModel
 {
-    public class EditStudentRecordViewModel : ViewModelBase
+    private readonly StudentRecord originalRecord;
+    private bool isBusy;
+    private bool isSaved;
+    private string statusMessage = string.Empty;
+    private DateTime? recordDate;
+
+    public Student Student { get; }
+    public StudentRecord EditedRecord { get; }
+    public AsyncRelayCommand SaveCommand { get; }
+    public string? SavedWarning { get; private set; }
+
+    public event EventHandler? SaveSucceeded;
+
+    public DateTime? RecordDate
     {
-        private readonly DatabaseService databaseService;
-        private readonly StudentRecord originalRecord;
+        get => recordDate;
+        set => SetProperty(ref recordDate, value);
+    }
 
-        private bool isBusy;
-        private bool isSaved;
-
-        private string statusMessage = string.Empty;
-        private DateTime? recordDate;
-
-        public Student Student { get; }
-
-        public StudentRecord EditedRecord { get; }
-
-        public AsyncRelayCommand SaveCommand { get; }
-
-        public event EventHandler? SaveSucceeded;
-
-        public string? SavedWarning { get; private set; }
-
-        public DateTime? RecordDate
+    public bool IsBusy
+    {
+        get => isBusy;
+        private set
         {
-            get => recordDate;
-
-            set => SetProperty(ref recordDate, value);
-        }
-
-        public bool IsBusy
-        {
-            get => isBusy;
-
-            private set
+            if (SetProperty(ref isBusy, value))
             {
-                if (SetProperty(ref isBusy, value))
-                {
-                    RefreshState();
-                }
+                RefreshState();
             }
         }
+    }
 
-        public bool IsFormEnabled => !IsBusy && !isSaved;
+    public bool IsFormEnabled => !IsBusy && !isSaved;
+    public bool CanClose => !IsBusy;
 
-        public bool CanClose => !IsBusy;
+    public string StatusMessage
+    {
+        get => statusMessage;
+        private set => SetProperty(ref statusMessage, value);
+    }
 
-        public string StatusMessage
+    public EditStudentRecordViewModel(
+        Student student,
+        StudentRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(student);
+        ArgumentNullException.ThrowIfNull(record);
+
+        if (record.StudentID != student.StudentID)
         {
-            get => statusMessage;
-
-            private set => SetProperty(ref statusMessage, value);
+            throw new ArgumentException(
+                "Hồ sơ không thuộc sinh viên đang chọn.");
         }
 
-        public EditStudentRecordViewModel(
-            Student student,
-            StudentRecord record)
+        if (record.IsArchived)
         {
-            ArgumentNullException.ThrowIfNull(student);
-            ArgumentNullException.ThrowIfNull(record);
+            throw new InvalidOperationException(
+                "Không thể chỉnh sửa hồ sơ đã lưu trữ.");
+        }
 
-            if (record.StudentID != student.StudentID)
+        Student = student;
+        originalRecord = CopyRecord(record);
+        EditedRecord = CopyRecord(record);
+        RecordDate = record.RecordDate;
+
+        SaveCommand = new AsyncRelayCommand(
+            SaveAsync,
+            HandleSaveError,
+            () => !IsBusy && !isSaved);
+    }
+
+    private void RefreshState()
+    {
+        OnPropertyChanged(nameof(IsFormEnabled));
+        OnPropertyChanged(nameof(CanClose));
+        SaveCommand.RaiseCanExecuteChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        IsBusy = true;
+        StatusMessage = "Saving...";
+
+        try
+        {
+            if (!RecordDate.HasValue)
             {
                 throw new ArgumentException(
-                    "Hồ sơ không thuộc sinh viên đang chọn.");
+                    "Vui lòng chọn ngày ghi nhận hồ sơ.");
             }
 
-            if (record.IsArchived)
-            {
-                throw new InvalidOperationException(
-                    "Không thể chỉnh sửa hồ sơ đã lưu trữ.");
-            }
+            EditedRecord.RecordDate = RecordDate.Value.Date;
 
-            databaseService = new DatabaseService();
+            var result = await UpdateAsync(EditedRecord, originalRecord);
 
-            Student = student;
-
-            // Một bản để đối chiếu khi lưu.
-            originalRecord = CopyRecord(record);
-
-            // Một bản để nhập thay đổi.
-            EditedRecord = CopyRecord(record);
-
-            RecordDate = record.RecordDate;
-
-            SaveCommand = new AsyncRelayCommand(
-                SaveAsync,
-                HandleSaveError,
-                () => !IsBusy && !isSaved);
+            SavedWarning = result.Warning;
+            isSaved = true;
+            StatusMessage = "Changes saved.";
         }
-
-        private void RefreshState()
+        finally
         {
-            OnPropertyChanged(nameof(IsFormEnabled));
-            OnPropertyChanged(nameof(CanClose));
-
-            SaveCommand.RaiseCanExecuteChanged();
+            IsBusy = false;
         }
 
-        private async Task SaveAsync()
+        SaveSucceeded?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void HandleSaveError(Exception ex)
+    {
+        StatusMessage = isSaved
+            ? "Hồ sơ đã được lưu. Hãy đóng form.\n" + ex.Message
+            : "Không thể cập nhật hồ sơ.\n" + ex.Message;
+    }
+
+    private static StudentRecord CopyRecord(StudentRecord source)
+    {
+        return new StudentRecord
         {
-            IsBusy = true;
-            StatusMessage = "Saving...";
-
-            try
-            {
-                if (!RecordDate.HasValue)
-                {
-                    throw new ArgumentException(
-                        "Vui lòng chọn ngày ghi nhận hồ sơ.");
-                }
-
-                EditedRecord.RecordDate = RecordDate.Value.Date;
-
-                // Giữ nguyên kiểm tra dữ liệu gốc trong DatabaseService.
-                var result = await databaseService.UpdateStudentRecordAsync(
-                    EditedRecord, originalRecord);
-                SavedWarning = result.Warning;
-
-                isSaved = true;
-
-                StatusMessage = "Changes saved.";
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-
-            SaveSucceeded?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void HandleSaveError(Exception ex)
-        {
-            StatusMessage = isSaved
-                ? "Hồ sơ đã được lưu. Hãy đóng form.\n" + ex.Message
-                : "Không thể cập nhật hồ sơ.\n" + ex.Message;
-        }
-
-        private static StudentRecord CopyRecord(
-            StudentRecord source)
-        {
-            return new StudentRecord
-            {
-                RecordID = source.RecordID,
-                StudentID = source.StudentID,
-                RecordType = source.RecordType,
-                DocumentNumber = source.DocumentNumber,
-                RecordTitle = source.RecordTitle,
-                RecordContent = source.RecordContent,
-                RecordDate = source.RecordDate,
-                IsArchived = source.IsArchived,
-                CreatedByUserID = source.CreatedByUserID,
-                CreatedAt = source.CreatedAt
-            };
-        }
+            RecordID = source.RecordID,
+            StudentID = source.StudentID,
+            RecordType = source.RecordType,
+            DocumentNumber = source.DocumentNumber,
+            RecordTitle = source.RecordTitle,
+            RecordContent = source.RecordContent,
+            RecordDate = source.RecordDate,
+            IsArchived = source.IsArchived,
+            CreatedByUserID = source.CreatedByUserID,
+            CreatedAt = source.CreatedAt
+        };
     }
 }
