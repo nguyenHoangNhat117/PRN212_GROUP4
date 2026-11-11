@@ -2,6 +2,10 @@
 using PRN212_GROUP4.Services;
 using PRN212_GROUP4.ViewModels;
 using PRN212_GROUP4.Views;
+using System.Windows;
+using PRN212_GROUP4.Services;
+using PRN212_GROUP4.ViewModels;
+using PRN212_GROUP4.Views;
 
 namespace PRN212_GROUP4;
 
@@ -41,6 +45,19 @@ public partial class MainWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
 
+        GradesButton.Visibility =
+            access.Can("F11") || access.Can("F12") || access.Can("F13")
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        GpaButton.Visibility = access.Can("F14")
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        ProgressButton.Visibility = access.Can("F15")
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         ReportsButton.Visibility = access.Can("F16")
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -70,6 +87,19 @@ public partial class MainWindow : Window
             {
                 Reports_Click(this, new RoutedEventArgs());
             }
+            else if (access.Can("F11") || access.Can("F12")
+                || access.Can("F13"))
+            {
+                Grades_Click(this, new RoutedEventArgs());
+            }
+            else if (access.Can("F14"))
+            {
+                Gpa_Click(this, new RoutedEventArgs());
+            }
+            else if (access.Can("F15"))
+            {
+                Progress_Click(this, new RoutedEventArgs());
+            }
             else
             {
                 PageHeading.Text = "Tài khoản";
@@ -89,6 +119,9 @@ public partial class MainWindow : Window
         {
             StudentsButton,
             EnrollmentButton,
+            GradesButton,
+            GpaButton,
+            ProgressButton,
             ReportsButton
         })
         {
@@ -102,7 +135,6 @@ public partial class MainWindow : Window
     {
         Navigate("Hồ sơ sinh viên", StudentsButton);
 
-        long sessionVersion = AppSession.Version;
         var vm = new StudentViewModel();
         MainFrame.Content = new StudentView(vm);
 
@@ -112,8 +144,6 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            // A completed old request must not reopen UI after logout.
-            if (!IsVisible || AppSession.Version != sessionVersion) return;
             MessageBox.Show(
                 this,
                 ex.Message,
@@ -127,6 +157,30 @@ public partial class MainWindow : Window
     {
         Navigate("Đăng ký môn học", EnrollmentButton);
         MainFrame.Content = new EnrollmentView();
+    }
+
+    private void Grades_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("Điểm số", GradesButton);
+        MainFrame.Content = new GradesView();
+    }
+
+    private void Gpa_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("GPA", GpaButton);
+        MainFrame.Content = new GpaView();
+    }
+
+    private void Progress_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        Navigate("Tiến độ học tập", ProgressButton);
+        MainFrame.Content = new ProgressView();
     }
 
     private void Reports_Click(

@@ -1,0 +1,426 @@
+﻿<Page x:Class="PRN212_GROUP4.Views.GradesView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="#FFFDF5"
+      FontFamily="{StaticResource PlayfulGeometricReading}"
+      Foreground="#253044">
+
+    <Grid Margin="26">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="0,0,0,18">
+            <TextBlock
+                Text="Điểm số"
+                FontFamily="{StaticResource PlayfulGeometricDisplay}"
+                FontSize="27"
+                FontWeight="Bold"/>
+
+            <TextBlock
+                Text="Nhập, chỉnh sửa và xem điểm theo phạm vi được phân quyền."
+                Foreground="#78716C"
+                Margin="0,7,0,0"/>
+        </StackPanel>
+
+        <!-- Chọn chức năng -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,18">
+
+            <Button Content="Xem điểm"
+                    Command="{Binding ShowResultsCommand}"
+                    Tag="{Binding ResultsTag}"
+                    Style="{StaticResource Nav}"
+                    Padding="22,0"
+                    Margin="0,0,12,0"
+                    Visibility="{Binding CanResults,
+                        Converter={StaticResource BoolVisibility}}"/>
+
+            <Button Content="Nhập điểm"
+                    Command="{Binding ShowEntryCommand}"
+                    Tag="{Binding EntryTag}"
+                    Style="{StaticResource Nav}"
+                    Padding="22,0"
+                    Margin="0,0,12,0"
+                    Visibility="{Binding CanEntry,
+                        Converter={StaticResource BoolVisibility}}"/>
+
+            <Button Content="Sửa điểm"
+                    Command="{Binding ShowEditCommand}"
+                    Tag="{Binding EditTag}"
+                    Style="{StaticResource Nav}"
+                    Padding="22,0"
+                    Margin="0,0,12,0"
+                    Visibility="{Binding CanEdit,
+                        Converter={StaticResource BoolVisibility}}"/>
+        </StackPanel>
+
+        <!-- ================= F13: Xem điểm ================= -->
+        <Grid Grid.Row="2"
+              Visibility="{Binding ShowResults,
+                  Converter={StaticResource BoolVisibility}}">
+
+            <Grid DataContext="{Binding Results}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,6,18"
+                        IsEnabled="{Binding CanInteract}">
+
+                    <WrapPanel>
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="Sinh viên"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="230"
+                                      ItemsSource="{Binding Students}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding StudentId}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="Học kỳ"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="140"
+                                      ItemsSource="{Binding Semesters}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SemesterId}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8">
+                            <TextBlock Text="Lớp"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="150"
+                                      ItemsSource="{Binding Classes}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding ClassId}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,8"
+                                    Visibility="{Binding CanFilterPublication,
+                                        Converter={StaticResource BoolVisibility}}">
+                            <TextBlock Text="Công bố"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="150"
+                                      ItemsSource="{Binding Publications}"
+                                      SelectedItem="{Binding Publication}"/>
+                        </StackPanel>
+
+                        <Button Content="Tải lại"
+                                Command="{Binding RefreshCommand}"
+                                Style="{StaticResource Secondary}"
+                                VerticalAlignment="Bottom"
+                                Margin="0,0,0,8"/>
+                    </WrapPanel>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource Card}"
+                        Padding="0"
+                        Margin="0,0,6,6">
+
+                    <DataGrid ItemsSource="{Binding Rows}"
+                              AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã SV"
+                                                Binding="{Binding StudentCode}"
+                                                Width="90"/>
+                            <DataGridTextColumn Header="Họ và tên"
+                                                Binding="{Binding StudentName}"
+                                                Width="1.1*"/>
+                            <DataGridTextColumn Header="Môn học"
+                                                Binding="{Binding Course}"
+                                                Width="1.6*"/>
+                            <DataGridTextColumn Header="Lớp"
+                                                Binding="{Binding Class}"
+                                                Width="110"/>
+                            <DataGridTextColumn Header="Học kỳ"
+                                                Binding="{Binding Semester}"
+                                                Width="110"/>
+                            <DataGridTextColumn Header="Điểm"
+                                                Binding="{Binding ScoreText}"
+                                                Width="70"/>
+                            <DataGridTextColumn Header="Xếp loại"
+                                                Binding="{Binding Letter}"
+                                                Width="80"/>
+                            <DataGridTextColumn Header="Công bố"
+                                                Binding="{Binding PublishedText}"
+                                                Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <TextBlock Grid.Row="2"
+                           Text="{Binding Message}"
+                           Foreground="#78716C"
+                           TextWrapping="Wrap"
+                           Margin="0,14,0,0"/>
+            </Grid>
+        </Grid>
+
+        <!-- ================= F11: Nhập điểm ================= -->
+        <Grid Grid.Row="2"
+              Visibility="{Binding ShowEntry,
+                  Converter={StaticResource BoolVisibility}}">
+
+            <Grid DataContext="{Binding Entry}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,6,18"
+                        IsEnabled="{Binding CanInteract}">
+
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Lớp phụ trách"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="220"
+                                      ItemsSource="{Binding Classes}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding ClassId}"/>
+                        </StackPanel>
+
+                        <Button Content="Tải lại"
+                                Command="{Binding RefreshCommand}"
+                                Style="{StaticResource Secondary}"
+                                VerticalAlignment="Bottom"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource Card}"
+                        Padding="0"
+                        Margin="0,0,6,18">
+
+                    <DataGrid ItemsSource="{Binding Rows}"
+                              SelectedItem="{Binding SelectedRow,
+                                  Mode=TwoWay}"
+                              AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã SV"
+                                                Binding="{Binding StudentCode}"
+                                                Width="90"/>
+                            <DataGridTextColumn Header="Họ và tên"
+                                                Binding="{Binding StudentName}"
+                                                Width="1.2*"/>
+                            <DataGridTextColumn Header="Môn học"
+                                                Binding="{Binding Course}"
+                                                Width="1.6*"/>
+                            <DataGridTextColumn Header="Tín chỉ"
+                                                Binding="{Binding Credits}"
+                                                Width="80"/>
+                            <DataGridTextColumn Header="Trạng thái"
+                                                Binding="{Binding StatusText}"
+                                                Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <Border Grid.Row="2"
+                        Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,6,6"
+                        IsEnabled="{Binding CanInteract}">
+
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedText}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <WrapPanel>
+                            <StackPanel Margin="0,0,16,0">
+                                <TextBlock Text="Điểm (0–10)"
+                                           Style="{StaticResource Label}"/>
+                                <TextBox Width="120"
+                                         Text="{Binding ScoreText,
+                                             UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,16,0"
+                                        VerticalAlignment="Bottom"
+                                        Height="44">
+                                <CheckBox Content="Công bố điểm ngay"
+                                          IsChecked="{Binding Publish}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,12,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,16,0"
+                                        VerticalAlignment="Bottom"
+                                        Height="44">
+                                <CheckBox Content="Đánh dấu hoàn thành môn (tính GPA)"
+                                          IsChecked="{Binding MarkCompleted}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,12,0,0"/>
+                            </StackPanel>
+
+                            <Button Content="Lưu điểm"
+                                    Command="{Binding SaveCommand}"
+                                    VerticalAlignment="Bottom"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="3"
+                           Text="{Binding Message}"
+                           Foreground="#78716C"
+                           TextWrapping="Wrap"
+                           Margin="0,14,0,0"/>
+            </Grid>
+        </Grid>
+
+        <!-- ================= F12: Sửa điểm ================= -->
+        <Grid Grid.Row="2"
+              Visibility="{Binding ShowEdit,
+                  Converter={StaticResource BoolVisibility}}">
+
+            <Grid DataContext="{Binding Edit}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,6,18"
+                        IsEnabled="{Binding CanInteract}">
+
+                    <WrapPanel>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Học kỳ"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="150"
+                                      ItemsSource="{Binding Semesters}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SemesterId}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="Lớp"
+                                       Style="{StaticResource Label}"/>
+                            <ComboBox Width="170"
+                                      ItemsSource="{Binding Classes}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding ClassId}"/>
+                        </StackPanel>
+
+                        <Button Content="Tải lại"
+                                Command="{Binding RefreshCommand}"
+                                Style="{StaticResource Secondary}"
+                                VerticalAlignment="Bottom"/>
+                    </WrapPanel>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource Card}"
+                        Padding="0"
+                        Margin="0,0,6,18">
+
+                    <DataGrid ItemsSource="{Binding Rows}"
+                              SelectedItem="{Binding SelectedRow,
+                                  Mode=TwoWay}"
+                              AutoGenerateColumns="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã SV"
+                                                Binding="{Binding StudentCode}"
+                                                Width="90"/>
+                            <DataGridTextColumn Header="Họ và tên"
+                                                Binding="{Binding StudentName}"
+                                                Width="1.1*"/>
+                            <DataGridTextColumn Header="Môn học"
+                                                Binding="{Binding Course}"
+                                                Width="1.5*"/>
+                            <DataGridTextColumn Header="Lớp"
+                                                Binding="{Binding Class}"
+                                                Width="110"/>
+                            <DataGridTextColumn Header="Điểm"
+                                                Binding="{Binding ScoreText}"
+                                                Width="70"/>
+                            <DataGridTextColumn Header="Công bố"
+                                                Binding="{Binding PublishedText}"
+                                                Width="110"/>
+                            <DataGridTextColumn Header="Trạng thái"
+                                                Binding="{Binding StatusText}"
+                                                Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <Border Grid.Row="2"
+                        Style="{StaticResource Card}"
+                        Padding="16"
+                        Margin="0,0,6,6"
+                        IsEnabled="{Binding CanInteract}">
+
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedText}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <WrapPanel>
+                            <StackPanel Margin="0,0,16,0">
+                                <TextBlock Text="Điểm mới (0–10)"
+                                           Style="{StaticResource Label}"/>
+                                <TextBox Width="120"
+                                         Text="{Binding ScoreText,
+                                             UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,16,0"
+                                        VerticalAlignment="Bottom"
+                                        Height="44">
+                                <CheckBox Content="Đã công bố"
+                                          IsChecked="{Binding Publish}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,12,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,16,0"
+                                        VerticalAlignment="Bottom"
+                                        Height="44">
+                                <CheckBox Content="Đánh dấu hoàn thành môn (tính GPA)"
+                                          IsChecked="{Binding MarkCompleted}"
+                                          IsEnabled="{Binding CanMarkCompleted}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,12,0,0"/>
+                            </StackPanel>
+
+                            <Button Content="Lưu thay đổi"
+                                    Command="{Binding SaveCommand}"
+                                    VerticalAlignment="Bottom"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="3"
+                           Text="{Binding Message}"
+                           Foreground="#78716C"
+                           TextWrapping="Wrap"
+                           Margin="0,14,0,0"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

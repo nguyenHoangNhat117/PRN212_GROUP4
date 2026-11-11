@@ -73,27 +73,44 @@
                 </StackPanel>
 
                 <!-- Navigation -->
-                <StackPanel>
-                    <TextBlock Text="KHÔNG GIAN HỌC VỤ"
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="KHÔNG GIAN HỌC VỤ"
                                Foreground="#596274"
                                FontSize="10"
                                Margin="0,0,0,16"/>
 
-                    <Button x:Name="StudentsButton"
+                        <Button x:Name="StudentsButton"
                             Content="Hồ sơ sinh viên"
                             Click="Students_Click"
                             Style="{StaticResource Nav}"/>
 
-                    <Button x:Name="EnrollmentButton"
+                        <Button x:Name="EnrollmentButton"
                             Content="Đăng ký môn học"
                             Click="Enrollment_Click"
                             Style="{StaticResource Nav}"/>
 
-                    <Button x:Name="ReportsButton"
+                        <Button x:Name="GradesButton"
+                            Content="Điểm số"
+                            Click="Grades_Click"
+                            Style="{StaticResource Nav}"/>
+
+                        <Button x:Name="GpaButton"
+                            Content="GPA"
+                            Click="Gpa_Click"
+                            Style="{StaticResource Nav}"/>
+
+                        <Button x:Name="ProgressButton"
+                            Content="Tiến độ học tập"
+                            Click="Progress_Click"
+                            Style="{StaticResource Nav}"/>
+
+                        <Button x:Name="ReportsButton"
                             Content="Báo cáo học tập"
                             Click="Reports_Click"
                             Style="{StaticResource Nav}"/>
-                </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
 
             </DockPanel>
         </Border>

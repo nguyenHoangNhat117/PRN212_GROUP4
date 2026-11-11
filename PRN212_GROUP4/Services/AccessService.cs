@@ -50,13 +50,20 @@ public sealed record AccessContext(
 public static class AccessService
 {
     public static readonly IReadOnlyDictionary<string, string[]> Baseline =
-        new Dictionary<string, string[]>
-        {
-            ["STUDENT"] = new[] { "F03", "F08", "F09", "F14" },
-            ["LECTURER"] = new[] { "F09", "F16" },
-            ["ACADEMIC_STAFF"] =
-                new[] { "F03", "F05", "F08", "F09", "F14", "F16" }
-        };
+    new Dictionary<string, string[]>
+    {
+        // F11–F15 (Lực): theo Function-Actor Matrix.
+        ["STUDENT"] =
+            new[] { "F03", "F08", "F09", "F13", "F14", "F15" },
+        ["LECTURER"] =
+            new[] { "F09", "F11", "F12", "F13", "F15", "F16" },
+        ["ACADEMIC_STAFF"] =
+            new[]
+            {
+                "F03", "F05", "F08", "F09",
+                "F13", "F14", "F15", "F16"
+            }
+    };
 
     internal static async Task<AccessContext> LoadAsync(
         StudentManagementContext db,
