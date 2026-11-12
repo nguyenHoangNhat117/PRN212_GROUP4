@@ -2,6 +2,7 @@
 using PRN212_GROUP4.Services;
 using PRN212_GROUP4.ViewModels;
 using PRN212_GROUP4.Views;
+using PRN212_GROUP4.Extensions.Views;
 using System.Windows;
 using PRN212_GROUP4.Services;
 using PRN212_GROUP4.ViewModels;
@@ -211,5 +212,17 @@ public partial class MainWindow : Window
         };
 
         dialog.ShowDialog();
+    }
+    private void AdditionalModules_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        var window = new ExtendedModulesWindow
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        window.ShowDialog();
     }
 }

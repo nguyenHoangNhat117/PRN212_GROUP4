@@ -109,6 +109,11 @@
                             Content="Báo cáo học tập"
                             Click="Reports_Click"
                             Style="{StaticResource Nav}"/>
+                        <Button x:Name="AdditionalModulesButton"
+                            Content="Chức năng quản lý"
+                            Click="AdditionalModules_Click"
+                            Style="{StaticResource Nav}"
+                            Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
 
