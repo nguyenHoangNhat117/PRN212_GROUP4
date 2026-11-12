@@ -7,8 +7,10 @@ namespace PRN212_GROUP4.Services;
 
 public static class AcademicCsvFormatter
 {
-    public static string Format(IReadOnlyList<AcademicReportRow> rows)
+    public static string Format(
+        IReadOnlyList<AcademicReportRow> rows)
     {
+        // The header order must match the value order below.
         var text = new StringBuilder(
             "StudentCode,FullName,Department,Status,Semester,Class,"
             + "Course,Credits,Score,Letter,SemesterGPA,CumulativeGPA\r\n");
@@ -24,16 +26,24 @@ public static class AcademicCsvFormatter
                 row.Semester,
                 row.Class,
                 row.Course,
+
+                // Use a consistent number format for CSV output.
                 row.Credits?.ToString(CultureInfo.InvariantCulture),
                 row.Score?.ToString(CultureInfo.InvariantCulture),
+
                 row.Letter,
+
                 row.SemesterGpa?.ToString(CultureInfo.InvariantCulture),
                 row.CumulativeGpa?.ToString(CultureInfo.InvariantCulture)
             };
 
-            text.AppendLine(string.Join(",", values.Select(CsvText.Cell)));
+            // Format each cell before joining values with commas.
+            // CsvText.Cell handles cell content for CSV output.
+            text.AppendLine(
+                string.Join(",", values.Select(CsvText.Cell)));
         }
 
+        // Return CSV text; file writing is handled by the exporter.
         return text.ToString();
     }
 }

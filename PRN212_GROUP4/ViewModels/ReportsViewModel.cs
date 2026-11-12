@@ -9,8 +9,12 @@ public sealed partial class ReportsViewModel : ViewModelBase
 {
     private bool busy;
     private string message = "";
+
+    // Remember the criteria used to generate the displayed report.
+    // Export uses these criteria, even if the user changes the filters.
     private ReportCriteria? generatedCriteria;
 
+    // These collections provide data for the filters and report table.
     public ObservableCollection<Lookup> Students { get; } = new();
     public ObservableCollection<Lookup> Semesters { get; } = new();
     public ObservableCollection<Lookup> Classes { get; } = new();
@@ -26,6 +30,7 @@ public sealed partial class ReportsViewModel : ViewModelBase
     public int SemesterId { get; set; }
     public int ClassId { get; set; }
 
+    // Disable the filter controls while an operation is running.
     public bool CanInteract => !busy;
 
     public string Message
@@ -44,12 +49,14 @@ public sealed partial class ReportsViewModel : ViewModelBase
         GenerateCommand = new AsyncRelayCommand(
             GenerateAsync, Error, () => !busy);
 
+        // Export is available only when the report has data.
         ExportCsvCommand = new AsyncRelayCommand(
             ExportAsync, Error, () => !busy && Rows.Count > 0);
     }
 
     private void Error(Exception ex)
     {
+        // Clear old data so it is not mistaken for a successful result.
         Rows.Clear();
         generatedCriteria = null;
         Message = ex.Message;
@@ -60,6 +67,8 @@ public sealed partial class ReportsViewModel : ViewModelBase
     {
         busy = value;
         OnPropertyChanged(nameof(CanInteract));
+
+        // Refresh button states when the busy state changes.
         GenerateCommand.RaiseCanExecuteChanged();
         ExportCsvCommand.RaiseCanExecuteChanged();
     }
@@ -70,6 +79,7 @@ public sealed partial class ReportsViewModel : ViewModelBase
 
         try
         {
+            // Load filter options within the user's F16 access scope.
             var lookups = await new EnrollmentViewModel()
                 .LookupsAsync("F16");
 
@@ -86,6 +96,7 @@ public sealed partial class ReportsViewModel : ViewModelBase
             Busy(false);
         }
 
+        // Generate the default report after loading the filters.
         await GenerateCommand.ExecuteAsync();
     }
 
@@ -94,6 +105,8 @@ public sealed partial class ReportsViewModel : ViewModelBase
         List<Lookup> values)
     {
         target.Clear();
+
+        // ID 0 means that this filter does not restrict the result.
         target.Add(new Lookup(0, "Tất cả"));
 
         foreach (var value in values)
@@ -111,14 +124,17 @@ public sealed partial class ReportsViewModel : ViewModelBase
             Rows.Clear();
             generatedCriteria = null;
 
+            // Take a snapshot of the current filter values.
             var criteria = new ReportCriteria(
                 Type, StudentId, SemesterId, ClassId);
 
+            // Call the business logic in ReportsViewModel.Business.cs.
             foreach (var row in await GenerateAsync(criteria))
             {
                 Rows.Add(row);
             }
 
+            // Save the criteria only after generation succeeds.
             generatedCriteria = criteria;
 
             Message = Rows.Count == 0
@@ -143,6 +159,8 @@ public sealed partial class ReportsViewModel : ViewModelBase
 
         try
         {
+            // Query again using the last generated criteria.
+            // This also checks the user's current access permissions.
             var data = await GenerateAsync(generatedCriteria);
 
             Rows.Clear();
@@ -158,6 +176,7 @@ public sealed partial class ReportsViewModel : ViewModelBase
                 return;
             }
 
+            // The exporter opens the save dialog and writes the CSV file.
             string? file = await AcademicCsvExporter.ExportAsync(data);
 
             Message = file == null

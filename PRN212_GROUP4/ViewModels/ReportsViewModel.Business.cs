@@ -17,14 +17,19 @@ public sealed partial class ReportsViewModel
         IAcademicGpaProvider? gpa = null,
         Func<StudentManagementContext>? createDb = null)
     {
+        // Use the SQL view provider unless another provider is supplied.
         this.gpa = gpa ?? new SqlViewGpaProvider();
-        this.createDb = createDb ?? (() => new StudentManagementContext());
+
+        this.createDb =
+            createDb ?? (() => new StudentManagementContext());
+
         InitializeCommands();
     }
 
     public async Task<List<AcademicReportRow>> GenerateAsync(
         ReportCriteria criteria)
     {
+        // Accept only the report types supported by this module.
         if (!new[] { "Sinh viên", "Lớp", "Kết quả học tập" }
             .Contains(criteria.Type))
         {
@@ -32,11 +37,16 @@ public sealed partial class ReportsViewModel
         }
 
         using var db = createDb();
+
+        // Keep the report queries in one serializable transaction.
         using var transaction = await db.Database
             .BeginTransactionAsync(IsolationLevel.Serializable);
 
+        // Check F16 permission before reading report data.
         var access = await AccessService.RequireAsync(db, "F16");
 
+        // Apply access restrictions before applying the student filter.
+        // StudentId 0 means all students within the allowed scope.
         var students = AccessService
             .Students(db, access, "F16")
             .AsNoTracking()
@@ -44,6 +54,8 @@ public sealed partial class ReportsViewModel
                 criteria.StudentId == 0
                 || student.StudentId == criteria.StudentId);
 
+        // Reuse the registration scope for staff and lecturers.
+        // SemesterId 0 and ClassId 0 mean no additional restriction.
         var registrations = EnrollmentViewModel
             .Scoped(db, access, "F16")
             .Where(registration =>
@@ -53,10 +65,13 @@ public sealed partial class ReportsViewModel
                 (criteria.ClassId == 0
                     || registration.ClassId == criteria.ClassId));
 
+        // Report type 1: basic student information.
         if (criteria.Type == "Sinh viên")
         {
             if (criteria.SemesterId != 0 || criteria.ClassId != 0)
             {
+                // Keep only students with a registration matching
+                // the selected semester and class filters.
                 students = students.Where(student =>
                     registrations.Any(registration =>
                         registration.StudentId == student.StudentId));
@@ -79,6 +94,7 @@ public sealed partial class ReportsViewModel
             return result;
         }
 
+        // Report type 2: students assigned to classes.
         if (criteria.Type == "Lớp")
         {
             var result = await (
@@ -103,15 +119,19 @@ public sealed partial class ReportsViewModel
             return result;
         }
 
+        // Report type 3: course results and available GPA values.
         var data = await BuildAcademicQuery(
             db, students, registrations).ToListAsync();
 
+        // Keep StudentId internally so the GPA provider can match rows.
         var rows = data.Select(item => (
             Row: ToReportRow(item),
             StudentId: item.StudentId)).ToList();
 
+        // GPA is available only through the staff F16 permission.
         bool canGpa = access.CanStaff("F16");
 
+        // Limit GPA access to students in the staff member's department.
         var gpaStudents = await students
             .Where(student =>
                 canGpa
@@ -122,6 +142,7 @@ public sealed partial class ReportsViewModel
         await gpa.ApplyAsync(db, rows, gpaStudents.ToHashSet());
 
         await transaction.CommitAsync();
+
         return rows.Select(item => item.Row).ToList();
     }
 
@@ -130,6 +151,7 @@ public sealed partial class ReportsViewModel
         IQueryable<PRN212_GROUP4.Models.Entities.Student> students,
         IQueryable<VCourseEnrollmentStatus> registrations)
     {
+        // Read course results from the SQL view.
         var resultsQuery = db.VStudentCourseResults
             .AsNoTracking()
             .Select(result => new
@@ -159,10 +181,14 @@ public sealed partial class ReportsViewModel
                     ClassCode = (string?)result.ClassCode
                 }
                 into results
+
+            // LEFT JOIN keeps enrolled courses that have no result yet.
             from result in results.DefaultIfEmpty()
+
             orderby student.StudentCode,
                 registration.SemesterCode,
                 registration.CourseCode
+
             select new AcademicResultData
             {
                 StudentId = student.StudentId,
@@ -177,8 +203,10 @@ public sealed partial class ReportsViewModel
             };
     }
 
-    internal static AcademicReportRow ToReportRow(AcademicResultData item)
+    internal static AcademicReportRow ToReportRow(
+        AcademicResultData item)
     {
+        // Convert query data into a row used by the UI and CSV export.
         return new AcademicReportRow
         {
             StudentCode = item.StudentCode,
@@ -195,6 +223,7 @@ public sealed partial class ReportsViewModel
         };
     }
 
+    // Internal query data before mapping to the final report row.
     internal sealed class AcademicResultData
     {
         public int StudentId { get; set; }
